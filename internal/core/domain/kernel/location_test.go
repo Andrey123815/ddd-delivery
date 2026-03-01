@@ -60,6 +60,9 @@ func Test_NewRandomLocationGeneratedInValidRange(t *testing.T) {
 		if err != nil {
 			t.Fatalf("expected no error, got %v", err)
 		}
+		if loc.IsEmpty() {
+			t.Error("NewRandomLocation should return non-empty location")
+		}
 		if loc.X() < 1 || loc.X() > 10 {
 			t.Errorf("x=%d out of range [1,10]", loc.X())
 		}
@@ -84,30 +87,29 @@ func Test_LocationEqualsReturnsCorrectResult(t *testing.T) {
 	b, _ := NewLocation(2, 3)
 	c, _ := NewLocation(2, 4)
 
-	if !a.Equals(*b) {
+	if !a.Equals(b) {
 		t.Error("same coords should be equal")
 	}
-	if a.Equals(*c) {
+	if a.Equals(c) {
 		t.Error("different coords should not be equal")
 	}
 }
 
-func Test_AbsInt(t *testing.T) {
-	if got := AbsInt(5); got != 5 {
-		t.Errorf("AbsInt(5) = %d, want 5", got)
+func Test_LocationIsEmptyReturnsCorrectResult(t *testing.T) {
+	loc, _ := NewLocation(1, 1)
+	if loc.IsEmpty() {
+		t.Error("location from NewLocation with valid params should not be empty")
 	}
-	if got := AbsInt(-5); got != 5 {
-		t.Errorf("AbsInt(-5) = %d, want 5", got)
-	}
-	if got := AbsInt(0); got != 0 {
-		t.Errorf("AbsInt(0) = %d, want 0", got)
+	empty := Location{}
+	if !empty.IsEmpty() {
+		t.Error("zero value Location should be empty")
 	}
 }
 
-func Test_LocationDistanceCalculatedCorrectly(t *testing.T) {
+func Test_LocationDistanceToCalculatedCorrectly(t *testing.T) {
 	tests := []struct {
 		x1, y1, x2, y2 uint8
-		want           uint8
+		want           int
 	}{
 		{1, 1, 1, 1, 0},
 		{1, 1, 1, 2, 1},
@@ -119,8 +121,25 @@ func Test_LocationDistanceCalculatedCorrectly(t *testing.T) {
 	for _, tt := range tests {
 		a, _ := NewLocation(tt.x1, tt.y1)
 		b, _ := NewLocation(tt.x2, tt.y2)
-		if got := a.Distance(*b); got != tt.want {
-			t.Errorf("Distance((%d,%d), (%d,%d)) = %d, want %d", tt.x1, tt.y1, tt.x2, tt.y2, got, tt.want)
+		got, err := a.DistanceTo(b)
+		if err != nil {
+			t.Fatalf("DistanceTo((%d,%d), (%d,%d)) unexpected error: %v", tt.x1, tt.y1, tt.x2, tt.y2, err)
 		}
+		if got != tt.want {
+			t.Errorf("DistanceTo((%d,%d), (%d,%d)) = %d, want %d", tt.x1, tt.y1, tt.x2, tt.y2, got, tt.want)
+		}
+	}
+}
+
+func Test_LocationDistanceToReturnsErrorWhenEmpty(t *testing.T) {
+	loc, _ := NewLocation(1, 1)
+	empty := Location{}
+	_, err := loc.DistanceTo(empty)
+	if err == nil {
+		t.Error("DistanceTo with empty target should return error")
+	}
+	_, err = empty.DistanceTo(loc)
+	if err == nil {
+		t.Error("DistanceTo with empty source should return error")
 	}
 }
