@@ -75,7 +75,7 @@ func (c *Courier)AddStoragePlace(name string, volume int) error {
 	return nil
 }
 
-func (c *Courier) CanTakeOrder(order orderModel.Order) (bool, error) {
+func (c *Courier) CanTakeOrder(order *orderModel.Order) (bool, error) {
 	for _, storagePlace := range c.storagePlaces {
 		canStore, err := storagePlace.CanStore(order.Volume())
 		if err != nil {
