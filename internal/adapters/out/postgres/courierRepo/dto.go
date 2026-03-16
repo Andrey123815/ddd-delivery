@@ -1,8 +1,6 @@
 package courierRepo
 
 import (
-	"delivery/internal/core/domain/models/order"
-
 	"github.com/google/uuid"
 )
 
@@ -11,8 +9,15 @@ type CourierDTO struct {
 	Name      string      `gorm:"type:varchar(255)"`
 	Speed     int         `gorm:"type:int"`
 	Location  LocationDTO `gorm:"embedded;embeddedPrefix:location_"`
-	Volume    int
-	Status    order.OrderStatus `gorm:"type:varchar(20)"`
+	StoragePlaces []StoragePlaceDTO `gorm:"foreignKey:CourierID"`
+}
+
+type StoragePlaceDTO struct {
+	ID        uuid.UUID   `gorm:"type:uuid;primaryKey"`
+	CourierID uuid.UUID   `gorm:"type:uuid;index"`
+	Name      string      `gorm:"type:varchar(255)"`
+	TotalVolume int       `gorm:"type:int"`
+	OrderID uuid.UUID   `gorm:"type:uuid;index"`
 }
 
 type LocationDTO struct {
@@ -22,4 +27,8 @@ type LocationDTO struct {
 
 func (CourierDTO) TableName() string {
 	return "couriers"
+}
+
+func (StoragePlaceDTO) TableName() string {
+	return "storage_places"
 }

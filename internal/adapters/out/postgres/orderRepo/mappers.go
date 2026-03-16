@@ -9,6 +9,7 @@ func DomainToDTO(aggregate *order.Order) OrderDTO {
 	var orderDTO OrderDTO
 
 	orderDTO.ID = aggregate.Id()
+	orderDTO.CourierID = aggregate.CourierId()
 	orderDTO.Volume = aggregate.Volume()
 	orderDTO.Status = aggregate.Status()
 

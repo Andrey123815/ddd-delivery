@@ -46,6 +46,16 @@ func RestoreCourier(id uuid.UUID, name string, speed int, location kernel.Locati
 	}
 }
 
+func RestoreCourierWithStoragePlaces(id uuid.UUID, name string, speed int, location kernel.Location, storagePlaces []*StoragePlace) *Courier {
+	return &Courier{
+		id:            id,
+		name:          name,
+		speed:         speed,
+		location:      location,
+		storagePlaces: storagePlaces,
+	}
+}
+
 func (c *Courier)Equals(other Courier) bool {
 	return c.id == other.id;
 }
