@@ -1,7 +1,7 @@
 package order
 
 import (
-	"delivery/internal/core/domain/kernel"
+	"delivery/internal/core/domain/models/kernel"
 	"errors"
 	"fmt"
 
@@ -31,6 +31,16 @@ func NewOrder(location kernel.Location, volume int) (*Order, error) {
 		volume:    volume,
 		status:    OrderStatusCreated,
 	}, nil
+}
+
+func RestoreOrder(id uuid.UUID, courierId uuid.UUID, location kernel.Location, volume int, status OrderStatus) *Order {
+	return &Order{
+		id:        id,
+		courierId: courierId,
+		location:  location,
+		volume:    volume,
+		status:    status,
+	}
 }
 
 func (o *Order)Equals(other Order) bool {

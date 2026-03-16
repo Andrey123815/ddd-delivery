@@ -3,7 +3,7 @@ package services
 import (
 	"testing"
 
-	"delivery/internal/core/domain/kernel"
+	"delivery/internal/core/domain/models/kernel"
 
 	courierModel "delivery/internal/core/domain/models/courier"
 	orderModel "delivery/internal/core/domain/models/order"

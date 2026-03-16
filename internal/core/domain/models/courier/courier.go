@@ -1,7 +1,7 @@
 package courier
 
 import (
-	"delivery/internal/core/domain/kernel"
+	"delivery/internal/core/domain/models/kernel"
 	"errors"
 
 	"github.com/google/uuid"
@@ -34,6 +34,16 @@ func NewCourier(name string, speed int, location kernel.Location) (*Courier, err
 		location:      location,
 		storagePlaces: nil,
 	}, nil
+}
+
+func RestoreCourier(id uuid.UUID, name string, speed int, location kernel.Location) *Courier {
+	return &Courier{
+		id:            id,
+		name:          name,
+		speed:         speed,
+		location:      location,
+		storagePlaces: nil,
+	}
 }
 
 func (c *Courier)Equals(other Courier) bool {
@@ -141,7 +151,7 @@ func (c *Courier) findStoragePlaceByOrderId(orderId uuid.UUID) (*StoragePlace, e
 		return nil, errors.New("у данного курьера нет доступных мест для перемещения грузов")
 	}
 	for _, storagePlace := range c.storagePlaces {
-		if !storagePlace.isOccupied() || storagePlace.OrderId() != orderId {
+		if !storagePlace.IsOccupied() || storagePlace.OrderId() != orderId {
 			continue
 		}
 		return storagePlace, nil

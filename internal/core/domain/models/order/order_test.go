@@ -3,7 +3,8 @@ package order
 import (
 	"testing"
 
-	"delivery/internal/core/domain/kernel"
+	"delivery/internal/core/domain/models/kernel"
+
 	"github.com/google/uuid"
 )
 
