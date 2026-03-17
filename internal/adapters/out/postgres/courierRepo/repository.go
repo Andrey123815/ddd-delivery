@@ -50,10 +50,10 @@ func (r *Repository) Update(ctx context.Context, aggregate *courier.Courier) err
 	return nil
 }
 
-func (r *Repository) Get(ctx context.Context, ID uuid.UUID) (*courier.Courier, error) {
+func (r *Repository) Get(ctx context.Context, Id uuid.UUID) (*courier.Courier, error) {
 	dto := CourierDTO{}
 
-	err := r.uow.Tx().WithContext(ctx).Preload(clause.Associations).Find(&dto, ID).Error
+	err := r.uow.Tx().WithContext(ctx).Preload(clause.Associations).Find(&dto, Id).Error
 	if err != nil {
 		return nil, err
 	}

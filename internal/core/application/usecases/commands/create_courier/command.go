@@ -1,0 +1,39 @@
+package createCourier
+
+import (
+	"delivery/internal/pkg/errs"
+)
+
+type CreateCourierCommand struct {
+	name string
+	speed int
+
+	isValid bool
+}
+
+func NewCreateCourierCommand(name string, speed int) (*CreateCourierCommand, error) {
+	if name == "" {
+		return nil, errs.NewValueIsRequired("name")
+	}
+	if speed <= 0 {
+		return nil, errs.NewValueIsRequired("speed")
+	}
+
+	return &CreateCourierCommand{
+		name: name,
+		speed: speed,
+		isValid: true,
+	}, nil
+}
+
+func (c *CreateCourierCommand) Name() string {
+	return c.name;
+}
+
+func (c *CreateCourierCommand) Speed() int {
+	return c.speed;
+}
+
+func (c *CreateCourierCommand) IsValid() bool {
+	return c.isValid;
+}

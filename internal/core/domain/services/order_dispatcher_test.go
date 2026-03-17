@@ -49,7 +49,7 @@ func Test_ReserveCourierForOrderReturnsErrorWhenOrderNotCreated(t *testing.T) {
 	loc, _ := kernel.NewLocation(1, 1)
 	ord, _ := orderModel.NewOrder(loc, 10)
 	c, _ := courierModel.NewCourier("Курьер", 5, loc)
-	_ = ord.Assign(c.ID())
+	_ = ord.Assign(c.Id())
 	svc := NewOrderDispatcher()
 
 	got, err := svc.ReserveCourierForOrder(ord, []*courierModel.Courier{c})

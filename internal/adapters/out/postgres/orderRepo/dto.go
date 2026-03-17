@@ -7,7 +7,7 @@ import (
 )
 
 type OrderDTO struct {
-	ID        uuid.UUID   `gorm:"type:uuid;primaryKey"`
+	Id        uuid.UUID   `gorm:"type:uuid;primaryKey"`
 	Volume    int
 	Status    order.OrderStatus `gorm:"type:varchar(20)"`
 	Location  LocationDTO `gorm:"embedded;embeddedPrefix:location_"`

@@ -69,11 +69,11 @@ func Test_CourierRepositoryShouldCanAddCourier(t *testing.T) {
 
 	// Считываем данные из БД
 	var courierFromDb courierRepo.CourierDTO
-	err = db.First(&courierFromDb, "id = ?", courierAggregate.ID()).Error
+	err = db.First(&courierFromDb, "id = ?", courierAggregate.Id()).Error
 	assert.NoError(t, err)
 
 	// Проверяем эквивалентность
-	assert.Equal(t, courierAggregate.ID(), courierFromDb.ID)
+	assert.Equal(t, courierAggregate.Id(), courierFromDb.Id)
 	assert.Equal(t, courierAggregate.Speed(), courierFromDb.Speed)
 }
 
@@ -103,7 +103,7 @@ func Test_OrderRepositoryShouldCanAddOrder(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Проверяем эквивалентность
-	assert.Equal(t, orderAggregate.Id(), orderFromDb.ID)
+	assert.Equal(t, orderAggregate.Id(), orderFromDb.Id)
 	assert.Equal(t, int(orderAggregate.Location().X()), orderFromDb.Location.X)
 	assert.Equal(t, int(orderAggregate.Location().Y()), orderFromDb.Location.Y)
 	assert.Equal(t, orderAggregate.Volume(), orderFromDb.Volume)
@@ -141,7 +141,7 @@ func Test_CourierRepositoryShouldCanUpdateCourier(t *testing.T) {
 
 	// Проверяем обновление в БД
 	var courierFromDb courierRepo.CourierDTO
-	err = db.First(&courierFromDb, "id = ?", courierAggregate.ID()).Error
+	err = db.First(&courierFromDb, "id = ?", courierAggregate.Id()).Error
 	assert.NoError(t, err)
 	assert.Equal(t, 8, courierFromDb.Location.X)
 	assert.Equal(t, 9, courierFromDb.Location.Y)
@@ -204,11 +204,11 @@ func Test_CourierRepositoryShouldCanGetCourier(t *testing.T) {
 
 	// Получаем курьера через репозиторий
 	uow.Begin(ctx)
-	fetchedCourier, err := uow.CourierRepository().Get(ctx, courierAggregate.ID())
+	fetchedCourier, err := uow.CourierRepository().Get(ctx, courierAggregate.Id())
 	assert.NoError(t, err)
 
 	// Проверяем корректность полученных данных
-	assert.Equal(t, courierAggregate.ID(), fetchedCourier.ID())
+	assert.Equal(t, courierAggregate.Id(), fetchedCourier.Id())
 	assert.Equal(t, courierAggregate.Name(), fetchedCourier.Name())
 	assert.Equal(t, courierAggregate.Speed(), fetchedCourier.Speed())
 	assert.Equal(t, courierAggregate.Location().X(), fetchedCourier.Location().X())
@@ -273,14 +273,14 @@ func Test_UnitOfWorkShouldCommitMultipleOperations(t *testing.T) {
 
 	// Проверяем, что оба агрегата сохранены
 	var courierFromDb courierRepo.CourierDTO
-	err = db.First(&courierFromDb, "id = ?", courierAggregate.ID()).Error
+	err = db.First(&courierFromDb, "id = ?", courierAggregate.Id()).Error
 	assert.NoError(t, err)
-	assert.Equal(t, courierAggregate.ID(), courierFromDb.ID)
+	assert.Equal(t, courierAggregate.Id(), courierFromDb.Id)
 
 	var orderFromDb orderRepo.OrderDTO
 	err = db.First(&orderFromDb, "id = ?", orderAggregate.Id()).Error
 	assert.NoError(t, err)
-	assert.Equal(t, orderAggregate.Id(), orderFromDb.ID)
+	assert.Equal(t, orderAggregate.Id(), orderFromDb.Id)
 }
 
 func Test_UnitOfWorkShouldTrackAggregates(t *testing.T) {
@@ -332,9 +332,9 @@ func Test_UnitOfWorkShouldHandleNestedTransactions(t *testing.T) {
 
 	// Проверяем сохранение
 	var courierFromDb courierRepo.CourierDTO
-	err = db.First(&courierFromDb, "id = ?", courierAggregate.ID()).Error
+	err = db.First(&courierFromDb, "id = ?", courierAggregate.Id()).Error
 	assert.NoError(t, err)
-	assert.Equal(t, courierAggregate.ID(), courierFromDb.ID)
+	assert.Equal(t, courierAggregate.Id(), courierFromDb.Id)
 }
 
 func Test_OrderRepositoryShouldCanGetFirstInCreatedStatus(t *testing.T) {
@@ -453,7 +453,7 @@ func Test_UnitOfWorkShouldRollbackUnlessCommitted(t *testing.T) {
 
 	// Проверяем, что курьер НЕ сохранен в БД
 	var courierFromDb courierRepo.CourierDTO
-	err = db.First(&courierFromDb, "id = ?", courierAggregate.ID()).Error
+	err = db.First(&courierFromDb, "id = ?", courierAggregate.Id()).Error
 	assert.Error(t, err)
 	assert.Equal(t, gorm.ErrRecordNotFound, err)
 }

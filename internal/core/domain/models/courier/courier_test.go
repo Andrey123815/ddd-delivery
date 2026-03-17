@@ -159,7 +159,7 @@ func Test_CourierCompleteOrderSucceedsAndUpdatesOrder(t *testing.T) {
 	if !ok {
 		t.Fatal("courier should be able to take order")
 	}
-	_ = ord.Assign(c.ID())
+	_ = ord.Assign(c.Id())
 	err := c.CompleteOrder(ord)
 	if err != nil {
 		t.Fatalf("CompleteOrder failed: %v", err)

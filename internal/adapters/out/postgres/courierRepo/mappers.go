@@ -8,7 +8,7 @@ import (
 func DomainToDTO(aggregate *courier.Courier) CourierDTO {
 	var courierDTO CourierDTO
 
-	courierDTO.ID = aggregate.ID()
+	courierDTO.Id = aggregate.Id()
 	courierDTO.Name = aggregate.Name()
 	courierDTO.Speed = aggregate.Speed()
 
@@ -21,8 +21,8 @@ func DomainToDTO(aggregate *courier.Courier) CourierDTO {
 		courierDTO.StoragePlaces = make([]StoragePlaceDTO, 0, len(aggregate.StoragePlaces()))
 		for _, sp := range aggregate.StoragePlaces() {
 			courierDTO.StoragePlaces = append(courierDTO.StoragePlaces, StoragePlaceDTO{
-				ID:          sp.Id(),
-				CourierID:   aggregate.ID(),
+				Id:          sp.Id(),
+				CourierID:   aggregate.Id(),
 				Name:        sp.Name(),
 				TotalVolume: sp.TotalVolume(),
 				OrderID:     sp.OrderId(),
@@ -40,10 +40,10 @@ func DtoToDomain(dto CourierDTO) *courier.Courier {
 	if dto.StoragePlaces != nil {
 		storagePlaces = make([]*courier.StoragePlace, 0, len(dto.StoragePlaces))
 		for _, spDTO := range dto.StoragePlaces {
-			sp := courier.RestoreStoragePlace(spDTO.ID, spDTO.Name, spDTO.TotalVolume, spDTO.OrderID)
+			sp := courier.RestoreStoragePlace(spDTO.Id, spDTO.Name, spDTO.TotalVolume, spDTO.OrderID)
 			storagePlaces = append(storagePlaces, sp)
 		}
 	}
 	
-	return courier.RestoreCourierWithStoragePlaces(dto.ID, dto.Name, dto.Speed, location, storagePlaces)
+	return courier.RestoreCourierWithStoragePlaces(dto.Id, dto.Name, dto.Speed, location, storagePlaces)
 }
