@@ -60,6 +60,10 @@ func (o *orderDispatcherService) ReserveCourierForOrder(order *orderModel.Order,
 	if bestCourier == nil {
 		return nil, errors.New("не найден подходящий курьер для заказа")
 	}
+
+	if err := order.Assign(bestCourier.ID()); err != nil {
+		return nil, err
+	}
 	
 	return bestCourier, nil
 }
