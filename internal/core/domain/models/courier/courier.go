@@ -81,13 +81,9 @@ func (c *Courier) CanTakeOrder(order *orderModel.Order) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		if !canStore {
-			continue
+		if canStore {
+			return true, nil
 		}
-		if err := storagePlace.Store(order.Id(), order.Volume()); err != nil {
-			continue
-		}
-		return true, nil
 	}
 	return false, nil
 }

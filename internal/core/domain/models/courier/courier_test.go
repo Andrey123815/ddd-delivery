@@ -108,11 +108,7 @@ func Test_CourierCanTakeOrderReturnsTrueWhenPlaceHasCapacity(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !ok {
-		t.Error("expected true when storage place has capacity")
-	}
-	places := c.StoragePlaces()
-	if places[0].OrderId() != ord.Id() {
-		t.Error("storage place should contain order after CanTakeOrder")
+		t.Error("expected true when storage place has enough capacity")
 	}
 }
 
@@ -159,6 +155,8 @@ func Test_CourierCompleteOrderSucceedsAndUpdatesOrder(t *testing.T) {
 	if !ok {
 		t.Fatal("courier should be able to take order")
 	}
+	// Явно сохраняем заказ в место хранения
+	_ = c.storagePlaces[0].Store(ord.Id(), ord.Volume())
 	_ = ord.Assign(c.ID())
 	err := c.CompleteOrder(ord)
 	if err != nil {
@@ -255,6 +253,8 @@ func Test_CourierFindStoragePlaceByOrderIdReturnsPlaceWhenFound(t *testing.T) {
 	if !ok {
 		t.Fatal("courier should take order")
 	}
+	// Явно сохраняем заказ в место хранения
+	_ = c.storagePlaces[0].Store(ord.Id(), ord.Volume())
 	place, err := c.findStoragePlaceByOrderId(ord.Id())
 	if err != nil {
 		t.Fatalf("findStoragePlaceByOrderId failed: %v", err)
