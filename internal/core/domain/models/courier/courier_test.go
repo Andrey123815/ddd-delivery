@@ -89,7 +89,7 @@ func Test_CourierCanTakeOrderReturnsFalseWhenNoStoragePlaces(t *testing.T) {
 	loc, _ := kernel.NewLocation(1, 1)
 	c, _ := NewCourier("Курьер", 5, loc)
 	ord, _ := orderModel.NewOrder(loc, 10)
-	ok, err := c.CanTakeOrder(*ord)
+	ok, err := c.CanTakeOrder(ord)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -103,16 +103,12 @@ func Test_CourierCanTakeOrderReturnsTrueWhenPlaceHasCapacity(t *testing.T) {
 	c, _ := NewCourier("Курьер", 5, loc)
 	_ = c.AddStoragePlace("Склад", 100)
 	ord, _ := orderModel.NewOrder(loc, 10)
-	ok, err := c.CanTakeOrder(*ord)
+	ok, err := c.CanTakeOrder(ord)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !ok {
-		t.Error("expected true when storage place has capacity")
-	}
-	places := c.StoragePlaces()
-	if places[0].OrderId() != ord.Id() {
-		t.Error("storage place should contain order after CanTakeOrder")
+		t.Error("expected true when storage place has enough capacity")
 	}
 }
 
@@ -121,7 +117,7 @@ func Test_CourierCanTakeOrderReturnsFalseWhenVolumeExceedsCapacity(t *testing.T)
 	c, _ := NewCourier("Курьер", 5, loc)
 	_ = c.AddStoragePlace("Склад", 5)
 	ord, _ := orderModel.NewOrder(loc, 10)
-	ok, err := c.CanTakeOrder(*ord)
+	ok, err := c.CanTakeOrder(ord)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -133,9 +129,9 @@ func Test_CourierCanTakeOrderReturnsFalseWhenVolumeExceedsCapacity(t *testing.T)
 func Test_CourierCompleteOrderReturnsErrorWhenOrderNil(t *testing.T) {
 	loc, _ := kernel.NewLocation(1, 1)
 	c, _ := NewCourier("Курьер", 5, loc)
-	err := c.CompleteOrder(nil)
+	err := c.CompleteOrder(uuid.Nil)
 	if err == nil {
-		t.Error("expected error when order is nil")
+		t.Error("expected error when orderId is nil")
 	}
 }
 
@@ -143,30 +139,30 @@ func Test_CourierCompleteOrderReturnsErrorWhenOrderNotInStorage(t *testing.T) {
 	loc, _ := kernel.NewLocation(1, 1)
 	c, _ := NewCourier("Курьер", 5, loc)
 	_ = c.AddStoragePlace("Склад", 100)
-	ord, _ := orderModel.NewOrder(loc, 10)
-	err := c.CompleteOrder(ord)
+	orderId := uuid.New()
+	err := c.CompleteOrder(orderId)
 	if err == nil {
 		t.Error("expected error when order not in courier storage")
 	}
 }
 
-func Test_CourierCompleteOrderSucceedsAndUpdatesOrder(t *testing.T) {
+func Test_CourierCompleteOrderSucceedsAndClearsStorage(t *testing.T) {
 	loc, _ := kernel.NewLocation(1, 1)
 	c, _ := NewCourier("Курьер", 5, loc)
 	_ = c.AddStoragePlace("Склад", 100)
 	ord, _ := orderModel.NewOrder(loc, 10)
-	ok, _ := c.CanTakeOrder(*ord)
+	ok, _ := c.CanTakeOrder(ord)
 	if !ok {
 		t.Fatal("courier should be able to take order")
 	}
-	_ = ord.Assign(c.ID())
-	err := c.CompleteOrder(ord)
+	// Явно сохраняем заказ в место хранения
+	_ = c.storagePlaces[0].Store(ord.Id(), ord.Volume())
+	
+	err := c.CompleteOrder(ord.Id())
 	if err != nil {
 		t.Fatalf("CompleteOrder failed: %v", err)
 	}
-	if ord.Status() != orderModel.OrderStatusCompleted {
-		t.Errorf("order status = %s, want Completed", ord.Status())
-	}
+	
 	places := c.StoragePlaces()
 	if places[0].OrderId() != uuid.Nil {
 		t.Error("storage place should be cleared after CompleteOrder")
@@ -251,10 +247,12 @@ func Test_CourierFindStoragePlaceByOrderIdReturnsPlaceWhenFound(t *testing.T) {
 	c, _ := NewCourier("Курьер", 5, loc)
 	_ = c.AddStoragePlace("Склад", 100)
 	ord, _ := orderModel.NewOrder(loc, 10)
-	ok, _ := c.CanTakeOrder(*ord)
+	ok, _ := c.CanTakeOrder(ord)
 	if !ok {
 		t.Fatal("courier should take order")
 	}
+	// Явно сохраняем заказ в место хранения
+	_ = c.storagePlaces[0].Store(ord.Id(), ord.Volume())
 	place, err := c.findStoragePlaceByOrderId(ord.Id())
 	if err != nil {
 		t.Fatalf("findStoragePlaceByOrderId failed: %v", err)

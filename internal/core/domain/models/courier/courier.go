@@ -75,7 +75,7 @@ func (c *Courier)AddStoragePlace(name string, volume int) error {
 	return nil
 }
 
-func (c *Courier) CanTakeOrder(order orderModel.Order) (bool, error) {
+func (c *Courier) CanTakeOrder(order *orderModel.Order) (bool, error) {
 	for _, storagePlace := range c.storagePlaces {
 		canStore, err := storagePlace.CanStore(order.Volume())
 		if err != nil {
@@ -89,18 +89,15 @@ func (c *Courier) CanTakeOrder(order orderModel.Order) (bool, error) {
 	return false, nil
 }
 
-func (c *Courier) CompleteOrder(order *orderModel.Order) error {
-	if order == nil {
-		return errors.New("заказ не может быть nil")
+func (c *Courier) CompleteOrder(orderId uuid.UUID) error {
+	if orderId == uuid.Nil {
+		return errors.New("orderId не может быть nil")
 	}
 	for _, storagePlace := range c.storagePlaces {
-		if storagePlace.OrderId() != order.Id() {
+		if storagePlace.OrderId() != orderId {
 			continue
 		}
-		if err := storagePlace.Clear(order.Id()); err != nil {
-			return err
-		}
-		if err := order.Complete(c.id); err != nil {
+		if err := storagePlace.Clear(orderId); err != nil {
 			return err
 		}
 		return nil
