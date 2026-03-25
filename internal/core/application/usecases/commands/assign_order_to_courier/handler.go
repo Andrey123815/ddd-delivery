@@ -75,7 +75,15 @@ func (h *assignCourierHandler) Handle(ctx context.Context, command *AssignOrderT
 		return err
 	}
 
+	if err := courier.TakeOrder(noAssignedOrder); err != nil {
+		return err
+	}
+
 	if err := h.uow.OrderRepository().Update(ctx, noAssignedOrder); err != nil {
+		return err
+	}
+
+	if err := h.uow.CourierRepository().Update(ctx, courier); err != nil {
 		return err
 	}
 

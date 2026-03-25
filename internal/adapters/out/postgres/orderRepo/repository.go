@@ -87,3 +87,22 @@ func (r *Repository) GetAllInAssignedStatus(ctx context.Context) ([]*order.Order
 
 	return orders, nil
 }
+
+func (r *Repository) GetNotCompleted(ctx context.Context) ([]*order.Order, error) {
+	dtos := []*OrderDTO{}
+
+	err := r.uow.Tx().WithContext(ctx).
+		Preload(clause.Associations).
+		Where("status IN ?", []order.OrderStatus{order.OrderStatusCreated, order.OrderStatusAssigned}).
+		Find(&dtos).Error
+	if err != nil {
+		return nil, err
+	}
+
+	orders := make([]*order.Order, 0, len(dtos))
+	for _, dto := range dtos {
+		orders = append(orders, DtoToDomain(*dto))
+	}
+
+	return orders, nil
+}

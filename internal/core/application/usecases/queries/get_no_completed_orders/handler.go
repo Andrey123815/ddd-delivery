@@ -2,7 +2,6 @@ package getNoCompletedOrders
 
 import (
 	"context"
-	"delivery/internal/core/domain/models/order"
 	"delivery/internal/core/ports"
 	"delivery/internal/pkg/errs"
 )
@@ -36,30 +35,16 @@ func (h *getNoCompletedOrdersHandler) Handle(ctx context.Context, query *GetNoCo
 
 	uow.Begin(ctx)
 
-	// Получаем заказы в статусе Created
-	createdOrders, err := uow.OrderRepository().GetFirstInCreatedStatus(ctx)
-	if err != nil && err.Error() != "record not found" {
-		return nil, err
-	}
-
-	// Получаем заказы в статусе Assigned
-	assignedOrders, err := uow.OrderRepository().GetAllInAssignedStatus(ctx)
+	noCompletedOrders, err := uow.OrderRepository().GetNotCompleted(ctx)
 	if err != nil {
 		return nil, err
-	}
-
-	// Объединяем результаты
-	var allOrders []*order.Order
-	if createdOrders != nil {
-		allOrders = append(allOrders, createdOrders)
-	}
-	allOrders = append(allOrders, assignedOrders...)
+	}	
 
 	// Маппим в response
-	responses := make([]GetNoCompletedOrdersResponse, 0, len(allOrders))
-	for _, o := range allOrders {
-		responses = append(responses, ToResponse(o))
+	orders := make([]GetNoCompletedOrdersResponse, 0, len(noCompletedOrders))
+	for _, o := range noCompletedOrders {
+		orders = append(orders, ToResponse(o))
 	}
 
-	return responses, nil
+	return orders, nil
 }
