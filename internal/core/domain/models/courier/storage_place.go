@@ -10,16 +10,16 @@ import (
 type StoragePlace struct {
 	id uuid.UUID
 	name string
-	totalVolume int
+	totalVolume Volume
 	orderId uuid.UUID
 }
 
-func NewStoragePlace(name string, totalVolume int) (*StoragePlace, error) {
+func NewStoragePlace(name string, totalVolume Volume) (*StoragePlace, error) {
 	if name == "" {
 		return nil, errors.New("Название места хранения не может быть пустым")
 	}
 
-	if totalVolume <= 0 {
+	if totalVolume.Value() <= 0 {
 		return nil, errors.New("Объем места хранения не может быть меньше или равным нулю")
 	}
 
@@ -42,7 +42,7 @@ func (s *StoragePlace) Name() string {
 	return s.name
 }
 
-func (s *StoragePlace) TotalVolume() int {
+func (s *StoragePlace) TotalVolume() Volume {
 	return s.totalVolume
 }
 
@@ -50,15 +50,17 @@ func (s *StoragePlace) OrderId() uuid.UUID {
 	return s.orderId
 }
 
-func (s *StoragePlace) CanStore(volume int) (bool, error) {
-	if volume <= 0 {return false, errors.New("Попытка разместить пустой или отрицательный объем") }
+func (s *StoragePlace) CanStore(volume Volume) (bool, error) {
+	if volume.Value() <= 0 {
+		return false, errors.New("Попытка разместить пустой или отрицательный объем")
+	}
 
-	canStore := s.orderId == uuid.Nil && s.totalVolume >= volume
+	canStore := s.orderId == uuid.Nil && s.totalVolume.CanFit(volume)
 
 	return canStore, nil
 }
 
-func (s *StoragePlace) Store(orderId uuid.UUID, volume int) error {
+func (s *StoragePlace) Store(orderId uuid.UUID, volume Volume) error {
 	canStore, err := s.CanStore(volume)
 
 	if err != nil { return err }

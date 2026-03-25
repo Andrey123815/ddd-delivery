@@ -57,17 +57,6 @@ func (l Location) IsEmpty() bool {
 	return l.isSet == false
 }
 
-func (l Location) DistanceTo(target Location) (int, error) {
-	if !l.isSet || !target.isSet {
-		return -1, fmt.Errorf("Одна из координат некорректно установлена")
-	}
-
-	return absInt(int8(l.x - target.x)) + absInt(int8(l.y - target.y)), nil
-}
-
-func absInt(x int8) int {
-	if x < 0 {
-			return int(-x)
-	}
-	return int(x)
+func (l Location) DistanceTo(target Location) (Distance, error) {
+	return NewDistance(l, target)
 }
