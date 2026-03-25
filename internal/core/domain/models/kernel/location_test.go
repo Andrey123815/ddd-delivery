@@ -125,8 +125,8 @@ func Test_LocationDistanceToCalculatedCorrectly(t *testing.T) {
 		if err != nil {
 			t.Fatalf("DistanceTo((%d,%d), (%d,%d)) unexpected error: %v", tt.x1, tt.y1, tt.x2, tt.y2, err)
 		}
-		if got != tt.want {
-			t.Errorf("DistanceTo((%d,%d), (%d,%d)) = %d, want %d", tt.x1, tt.y1, tt.x2, tt.y2, got, tt.want)
+		if got.Value() != tt.want {
+			t.Errorf("DistanceTo((%d,%d), (%d,%d)) = %d, want %d", tt.x1, tt.y1, tt.x2, tt.y2, got.Value(), tt.want)
 		}
 	}
 }
@@ -134,12 +134,19 @@ func Test_LocationDistanceToCalculatedCorrectly(t *testing.T) {
 func Test_LocationDistanceToReturnsErrorWhenEmpty(t *testing.T) {
 	loc, _ := NewLocation(1, 1)
 	empty := Location{}
-	_, err := loc.DistanceTo(empty)
+	distance, err := loc.DistanceTo(empty)
 	if err == nil {
 		t.Error("DistanceTo with empty target should return error")
 	}
-	_, err = empty.DistanceTo(loc)
+	if distance.Value() != 0 {
+		t.Error("expected zero distance on error")
+	}
+	
+	distance, err = empty.DistanceTo(loc)
 	if err == nil {
 		t.Error("DistanceTo with empty source should return error")
+	}
+	if distance.Value() != 0 {
+		t.Error("expected zero distance on error")
 	}
 }

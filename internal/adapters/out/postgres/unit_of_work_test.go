@@ -16,6 +16,22 @@ import (
 	"gorm.io/gorm"
 )
 
+func mustNewSpeed(value int) courier.Speed {
+	speed, err := courier.NewSpeed(value)
+	if err != nil {
+		panic(err)
+	}
+	return speed
+}
+
+func mustNewVolume(value int) courier.Volume {
+	volume, err := courier.NewVolume(value)
+	if err != nil {
+		panic(err)
+	}
+	return volume
+}
+
 func setupTest(t *testing.T) (context.Context, *gorm.DB, error) {
 	ctx := context.Background()
 	postgresContainer, dsn, err := testcnts.StartPostgresContainer(ctx)
@@ -58,7 +74,7 @@ func Test_CourierRepositoryShouldCanAddCourier(t *testing.T) {
 
 	// Вызываем Add
 	location, _ := kernel.NewLocation(10, 10)
-	courierAggregate, err := courier.NewCourier("Велосипедист", 2, location)
+	courierAggregate, err := courier.NewCourier("Велосипедист", mustNewSpeed(2), location)
 	assert.NoError(t, err)
 
 	uow.Begin(ctx)
@@ -74,7 +90,7 @@ func Test_CourierRepositoryShouldCanAddCourier(t *testing.T) {
 
 	// Проверяем эквивалентность
 	assert.Equal(t, courierAggregate.ID(), courierFromDb.ID)
-	assert.Equal(t, courierAggregate.Speed(), courierFromDb.Speed)
+	assert.Equal(t, courierAggregate.Speed().Value(), courierFromDb.Speed)
 }
 
 func Test_OrderRepositoryShouldCanAddOrder(t *testing.T) {
@@ -119,7 +135,7 @@ func Test_CourierRepositoryShouldCanUpdateCourier(t *testing.T) {
 
 	// Создаем и добавляем курьера
 	location, _ := kernel.NewLocation(5, 5)
-	courierAggregate, err := courier.NewCourier("Пеший курьер", 1, location)
+	courierAggregate, err := courier.NewCourier("Пеший курьер", mustNewSpeed(1), location)
 	assert.NoError(t, err)
 
 	uow.Begin(ctx)
@@ -128,9 +144,9 @@ func Test_CourierRepositoryShouldCanUpdateCourier(t *testing.T) {
 	err = uow.Commit(ctx)
 	assert.NoError(t, err)
 
-	// Обновляем локацию курьера
-	newLocation, _ := kernel.NewLocation(8, 9)
-	err = courierAggregate.Move(newLocation)
+	// Обновляем локацию курьера (speed=1, поэтому за один шаг переместится только на 1 единицу)
+	targetLocation, _ := kernel.NewLocation(6, 5)
+	err = courierAggregate.Move(targetLocation)
 	assert.NoError(t, err)
 
 	uow.Begin(ctx)
@@ -139,12 +155,12 @@ func Test_CourierRepositoryShouldCanUpdateCourier(t *testing.T) {
 	err = uow.Commit(ctx)
 	assert.NoError(t, err)
 
-	// Проверяем обновление в БД
+	// Проверяем обновление в БД (ожидаем, что курьер переместился на 1 единицу по X)
 	var courierFromDb courierRepo.CourierDTO
 	err = db.First(&courierFromDb, "id = ?", courierAggregate.ID()).Error
 	assert.NoError(t, err)
-	assert.Equal(t, 8, courierFromDb.Location.X)
-	assert.Equal(t, 9, courierFromDb.Location.Y)
+	assert.Equal(t, 6, courierFromDb.Location.X)
+	assert.Equal(t, 5, courierFromDb.Location.Y)
 }
 
 func Test_OrderRepositoryShouldCanUpdateOrder(t *testing.T) {
@@ -193,7 +209,7 @@ func Test_CourierRepositoryShouldCanGetCourier(t *testing.T) {
 
 	// Создаем и добавляем курьера
 	location, _ := kernel.NewLocation(7, 8)
-	courierAggregate, err := courier.NewCourier("Автокурьер", 5, location)
+	courierAggregate, err := courier.NewCourier("Автокурьер", mustNewSpeed(5), location)
 	assert.NoError(t, err)
 
 	uow.Begin(ctx)
@@ -255,7 +271,7 @@ func Test_UnitOfWorkShouldCommitMultipleOperations(t *testing.T) {
 
 	// Создаем агрегаты
 	courierLocation, _ := kernel.NewLocation(10, 10)
-	courierAggregate, err := courier.NewCourier("Мото курьер", 10, courierLocation)
+	courierAggregate, err := courier.NewCourier("Мото курьер", mustNewSpeed(10), courierLocation)
 	assert.NoError(t, err)
 
 	orderLocation, _ := kernel.NewLocation(5, 5)
@@ -293,7 +309,7 @@ func Test_UnitOfWorkShouldTrackAggregates(t *testing.T) {
 	// Создаем агрегат
 	location, err := kernel.NewLocation(9, 10)
 	assert.NoError(t, err)
-	courierAggregate, err := courier.NewCourier("Трекируемый курьер", 3, location)
+	courierAggregate, err := courier.NewCourier("Трекируемый курьер", mustNewSpeed(3), location)
 	assert.NoError(t, err)
 
 	// Track должен быть вызван внутри Add
@@ -315,7 +331,7 @@ func Test_UnitOfWorkShouldHandleNestedTransactions(t *testing.T) {
 
 	location, err := kernel.NewLocation(7, 8)
 	assert.NoError(t, err)
-	courierAggregate, err := courier.NewCourier("Курьер для вложенной транзакции", 7, location)
+	courierAggregate, err := courier.NewCourier("Курьер для вложенной транзакции", mustNewSpeed(7), location)
 	assert.NoError(t, err)
 
 	// Начинаем транзакцию
@@ -379,15 +395,15 @@ func Test_CourierRepositoryShouldGetAllAvailableCouriers(t *testing.T) {
 
 	// Создаем несколько курьеров
 	location1, _ := kernel.NewLocation(5, 5)
-	courier1, err := courier.NewCourier("Курьер 1", 2, location1)
+	courier1, err := courier.NewCourier("Курьер 1", mustNewSpeed(2), location1)
 	assert.NoError(t, err)
-	err = courier1.AddStoragePlace("Багажник 1", 50)
+	err = courier1.AddStoragePlace("Багажник 1", mustNewVolume(50))
 	assert.NoError(t, err)
 
 	location2, _ := kernel.NewLocation(10, 10)
-	courier2, err := courier.NewCourier("Курьер 2", 3, location2)
+	courier2, err := courier.NewCourier("Курьер 2", mustNewSpeed(3), location2)
 	assert.NoError(t, err)
-	err = courier2.AddStoragePlace("Багажник 2", 60)
+	err = courier2.AddStoragePlace("Багажник 2", mustNewVolume(60))
 	assert.NoError(t, err)
 
 	// Добавляем курьеров
@@ -439,7 +455,7 @@ func Test_UnitOfWorkShouldRollbackUnlessCommitted(t *testing.T) {
 
 	location, err := kernel.NewLocation(6, 7)
 	assert.NoError(t, err)
-	courierAggregate, err := courier.NewCourier("Курьер для отката", 4, location)
+	courierAggregate, err := courier.NewCourier("Курьер для отката", mustNewSpeed(4), location)
 	assert.NoError(t, err)
 
 	// Начинаем транзакцию и добавляем курьера
