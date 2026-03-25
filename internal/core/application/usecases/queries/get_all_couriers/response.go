@@ -31,7 +31,7 @@ func ToResponse(c *courier.Courier) GetAllCouriersResponse {
 	response := GetAllCouriersResponse{
 		Id:    c.Id(),
 		Name:  c.Name(),
-		Speed: c.Speed(),
+		Speed: c.Speed().Value(),
 		Location: LocationDTO{
 			X: int(c.Location().X()),
 			Y: int(c.Location().Y()),
@@ -44,7 +44,7 @@ func ToResponse(c *courier.Courier) GetAllCouriersResponse {
 			spDTO := StoragePlaceDTO{
 				Id:          sp.Id(),
 				Name:        sp.Name(),
-				TotalVolume: sp.TotalVolume(),
+				TotalVolume: sp.TotalVolume().Value(),
 				IsOccupied:  sp.IsOccupied(),
 			}
 			if sp.IsOccupied() {

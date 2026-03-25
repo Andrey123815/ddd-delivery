@@ -52,7 +52,7 @@ func (h *moveCouriersHandler) Handle(ctx context.Context, command *MoveCouriersC
 		}
 
 		if courier.Location().Equals(assignedOrder.Location()) {
-			err = courier.CompleteOrder(assignedOrder)
+			err = courier.CompleteOrder(assignedOrder.Id())
 			if err != nil {
 				return err
 			}

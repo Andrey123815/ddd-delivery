@@ -39,7 +39,12 @@ func (h *createCourierHandler) Handle(ctx context.Context, command *CreateCourie
 		return err
 	}
 
-	courierAggregate, err := courier.NewCourier(command.Name(), command.Speed(), *location)
+	speed, err := courier.NewSpeed(command.Speed())
+	if err != nil {
+		return err
+	}
+
+	courierAggregate, err := courier.NewCourier(command.Name(), speed, *location)
 	if err != nil {
 		return err
 	}

@@ -3,6 +3,7 @@ package courier
 import (
 	"delivery/internal/core/domain/models/kernel"
 	"errors"
+	"math"
 
 	"github.com/google/uuid"
 
@@ -12,16 +13,16 @@ import (
 type Courier struct {
 	id uuid.UUID
 	name string
-	speed int
+	speed Speed
 	location kernel.Location
 	storagePlaces []*StoragePlace
 }
 
-func NewCourier(name string, speed int, location kernel.Location) (*Courier, error) {
+func NewCourier(name string, speed Speed, location kernel.Location) (*Courier, error) {
 	if name == "" {
 		return nil, errors.New("имя курьера не может быть пустым")
 	}
-	if speed <= 0 {
+	if speed.Value() <= 0 {
 		return nil, errors.New("скорость курьера должна быть больше нуля")
 	}
 	if location.IsEmpty() {
@@ -36,7 +37,7 @@ func NewCourier(name string, speed int, location kernel.Location) (*Courier, err
 	}, nil
 }
 
-func RestoreCourier(id uuid.UUID, name string, speed int, location kernel.Location) *Courier {
+func RestoreCourier(id uuid.UUID, name string, speed Speed, location kernel.Location) *Courier {
 	return &Courier{
 		id:            id,
 		name:          name,
@@ -46,7 +47,7 @@ func RestoreCourier(id uuid.UUID, name string, speed int, location kernel.Locati
 	}
 }
 
-func RestoreCourierWithStoragePlaces(id uuid.UUID, name string, speed int, location kernel.Location, storagePlaces []*StoragePlace) *Courier {
+func RestoreCourierWithStoragePlaces(id uuid.UUID, name string, speed Speed, location kernel.Location, storagePlaces []*StoragePlace) *Courier {
 	return &Courier{
 		id:            id,
 		name:          name,
@@ -68,7 +69,7 @@ func (c *Courier)Name() string {
 	return c.name;
 }
 
-func (c *Courier)Speed() int {
+func (c *Courier)Speed() Speed {
 	return c.speed;
 }
 
@@ -80,7 +81,7 @@ func (c *Courier)StoragePlaces() []*StoragePlace  {
 	return c.storagePlaces;
 }
 
-func (c *Courier)AddStoragePlace(name string, volume int) error {
+func (c *Courier)AddStoragePlace(name string, volume Volume) error {
 	storagePlace, err := NewStoragePlace(name, volume)
 	if err != nil {
 		return err
@@ -96,34 +97,52 @@ func (c *Courier)AddStoragePlace(name string, volume int) error {
 }
 
 func (c *Courier) CanTakeOrder(order *orderModel.Order) (bool, error) {
+	orderVolume, err := NewVolume(order.Volume())
+	if err != nil {
+		return false, err
+	}
+	
 	for _, storagePlace := range c.storagePlaces {
-		canStore, err := storagePlace.CanStore(order.Volume())
+		canStore, err := storagePlace.CanStore(orderVolume)
 		if err != nil {
 			return false, err
 		}
-		if !canStore {
-			continue
+		if canStore {
+			return true, nil
 		}
-		if err := storagePlace.Store(order.Id(), order.Volume()); err != nil {
-			continue
-		}
-		return true, nil
 	}
+	
 	return false, nil
 }
 
-func (c *Courier) CompleteOrder(order *orderModel.Order) error {
-	if order == nil {
-		return errors.New("заказ не может быть nil")
+func (c *Courier) TakeOrder(order *orderModel.Order) error {
+	orderVolume, err := NewVolume(order.Volume())
+	if err != nil {
+		return err
 	}
+	
 	for _, storagePlace := range c.storagePlaces {
-		if storagePlace.OrderId() != order.Id() {
-			continue
-		}
-		if err := storagePlace.Clear(order.Id()); err != nil {
+		canStore, err := storagePlace.CanStore(orderVolume)
+		if err != nil {
 			return err
 		}
-		if err := order.Complete(c.id); err != nil {
+		if canStore {
+			return storagePlace.Store(order.Id(), orderVolume)
+		}
+	}
+	
+	return errors.New("у курьера нет свободного места для заказа")
+}
+
+func (c *Courier) CompleteOrder(orderId uuid.UUID) error {
+	if orderId == uuid.Nil {
+		return errors.New("orderId не может быть nil")
+	}
+	for _, storagePlace := range c.storagePlaces {
+		if storagePlace.OrderId() != orderId {
+			continue
+		}
+		if err := storagePlace.Clear(orderId); err != nil {
 			return err
 		}
 		return nil
@@ -138,21 +157,50 @@ func (c *Courier) CalculateTimeToLocation(target kernel.Location) (float64, erro
 	if target.IsEmpty() {
 		return 0, errors.New("целевая локация задана некорректно")
 	}
-	if c.speed <= 0 {
+	if c.speed.Value() <= 0 {
 		return 0, errors.New("скорость курьера должна быть больше нуля")
 	}
 	distance, err := c.location.DistanceTo(target)
 	if err != nil {
 		return 0, err
 	}
-	return float64(distance) / float64(c.speed), nil
+	return float64(distance.Value()) / float64(c.speed.Value()), nil
 }
 
 func (c *Courier) Move(target kernel.Location) error {
+	if c.location.IsEmpty() {
+		return errors.New("у курьера некорректно заданы текущие координаты")
+	}
 	if target.IsEmpty() {
 		return errors.New("попытка переместить курьера по некорректным координатам")
 	}
-	c.location = target
+	
+	if c.location.Equals(target) {
+		return nil
+	}
+	
+	dx := float64(target.X()) - float64(c.location.X())
+	dy := float64(target.Y()) - float64(c.location.Y())
+	remainingRange := float64(c.speed.Value())
+	
+	if math.Abs(dx) > remainingRange {
+		dx = math.Copysign(remainingRange, dx)
+	}
+	remainingRange -= math.Abs(dx)
+	
+	if math.Abs(dy) > remainingRange {
+		dy = math.Copysign(remainingRange, dy)
+	}
+	
+	newX := c.location.X() + uint8(int(dx))
+	newY := c.location.Y() + uint8(int(dy))
+	
+	newLocation, err := kernel.NewLocation(newX, newY)
+	if err != nil {
+		return err
+	}
+	
+	c.location = newLocation
 	return nil
 }
 
