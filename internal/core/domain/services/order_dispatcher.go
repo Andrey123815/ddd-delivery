@@ -65,28 +65,8 @@ func (o *orderDispatcherService) ReserveCourierForOrder(order *orderModel.Order,
 		return nil, err
 	}
 
-	courierStoragePlaces := bestCourier.StoragePlaces()
-
-	orderStored := false
-	for _, storagePlace := range courierStoragePlaces {
-		canStore, err := storagePlace.CanStore(order.Volume())
-		if err != nil {
-			return nil, err
-		}
-
-		if !canStore {
-			continue
-		}
-
-		if err := storagePlace.Store(order.Id(), order.Volume()); err != nil {
-			return nil, err
-		}
-		orderStored = true
-		break
-	}
-
-	if !orderStored {
-		return nil, errors.New("не найдено место хранения для заказа")
+	if err := bestCourier.TakeOrder(order); err != nil {
+		return nil, err
 	}
 
 	return bestCourier, nil
