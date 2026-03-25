@@ -24,3 +24,7 @@ func (v Volume) Equals(other Volume) bool {
 func (v Volume) CanFit(required Volume) bool {
 	return v.value >= required.value
 }
+
+func (v Volume) GreaterThanOrEqual(other Volume) bool {
+	return v.value >= other.value
+}

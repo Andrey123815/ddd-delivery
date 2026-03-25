@@ -30,6 +30,15 @@ func NewStoragePlace(name string, totalVolume Volume) (*StoragePlace, error) {
 	}, nil
 }
 
+func RestoreStoragePlace(id uuid.UUID, name string, totalVolume Volume, orderId uuid.UUID) *StoragePlace {
+	return &StoragePlace{
+		id:          id,
+		name:        name,
+		totalVolume: totalVolume,
+		orderId:     orderId,
+	}
+}
+
 func (s *StoragePlace) Equals(other *StoragePlace) bool {
 	return s.id == other.id
 }

@@ -61,3 +61,26 @@ func Test_VolumeCanFit(t *testing.T) {
 		t.Error("smaller volume should not fit larger")
 	}
 }
+
+func Test_VolumeGreaterThanOrEqual(t *testing.T) {
+	volume1, _ := NewVolume(100)
+	volume2, _ := NewVolume(100)
+	volume3, _ := NewVolume(50)
+	volume4, _ := NewVolume(150)
+	
+	if !volume1.GreaterThanOrEqual(volume2) {
+		t.Error("equal volumes should be greater than or equal")
+	}
+	
+	if !volume1.GreaterThanOrEqual(volume3) {
+		t.Error("100 should be >= 50")
+	}
+	
+	if volume3.GreaterThanOrEqual(volume1) {
+		t.Error("50 should not be >= 100")
+	}
+	
+	if volume1.GreaterThanOrEqual(volume4) {
+		t.Error("100 should not be >= 150")
+	}
+}
