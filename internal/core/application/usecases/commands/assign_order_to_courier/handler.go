@@ -8,7 +8,7 @@ import (
 )	
 
 type AssignCourierHandler interface {
-	Handle(ctx context.Context, command *AssignOrderToCourierCommand) error
+	Handle(ctx context.Context) error
 }
 
 var _ AssignCourierHandler = &assignCourierHandler{}
@@ -39,11 +39,7 @@ func NewAssignCourierHandler(orderRepo ports.OrderRepository, courierRepo ports.
 	}, nil
 }
 
-func (h *assignCourierHandler) Handle(ctx context.Context, command *AssignOrderToCourierCommand) error {
-	if command == nil {
-		return errs.NewValueIsRequired("command")
-	}
-
+func (h *assignCourierHandler) Handle(ctx context.Context) error {
 	noAssignedOrder, err := h.orderRepo.GetFirstInCreatedStatus(ctx)
 	if err != nil {
 		return err
@@ -70,14 +66,6 @@ func (h *assignCourierHandler) Handle(ctx context.Context, command *AssignOrderT
 
 	h.uow.Begin(ctx)
 	defer h.uow.RollbackUnlessCommitted(ctx)
-
-	if err := noAssignedOrder.Assign(courier.Id()); err != nil {
-		return err
-	}
-
-	if err := courier.TakeOrder(noAssignedOrder); err != nil {
-		return err
-	}
 
 	if err := h.uow.OrderRepository().Update(ctx, noAssignedOrder); err != nil {
 		return err
