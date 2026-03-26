@@ -10,25 +10,33 @@ import (
 type StoragePlace struct {
 	id uuid.UUID
 	name string
-	totalVolume *Volume
+	totalVolume Volume
 	orderId uuid.UUID
 }
 
-func NewStoragePlace(name string, totalVolume int) (*StoragePlace, error) {
+func NewStoragePlace(name string, totalVolume Volume) (*StoragePlace, error) {
 	if name == "" {
 		return nil, errors.New("Название места хранения не может быть пустым")
 	}
 
-	volume, err := NewVolume(totalVolume)
-	if err != nil {
-		return  nil, err
+	if totalVolume.Value() <= 0 {
+		return nil, errors.New("Объем места хранения не может быть меньше или равным нулю")
 	}
 
 	return &StoragePlace{
 		id:          uuid.New(),
 		name:        name,
-		totalVolume: volume,
+		totalVolume: totalVolume,
 	}, nil
+}
+
+func RestoreStoragePlace(id uuid.UUID, name string, totalVolume Volume, orderId uuid.UUID) *StoragePlace {
+	return &StoragePlace{
+		id:          id,
+		name:        name,
+		totalVolume: totalVolume,
+		orderId:     orderId,
+	}
 }
 
 func (s *StoragePlace) Equals(other *StoragePlace) bool {
@@ -43,26 +51,25 @@ func (s *StoragePlace) Name() string {
 	return s.name
 }
 
-func (s *StoragePlace) TotalVolume() int {
-	return s.totalVolume.Volume()
+func (s *StoragePlace) TotalVolume() Volume {
+	return s.totalVolume
 }
 
 func (s *StoragePlace) OrderId() uuid.UUID {
 	return s.orderId
 }
 
-func (s *StoragePlace) CanStore(volume int) (bool, error) {
-	volumeToStore, err := NewVolume(volume)
-	if err != nil {
-		return false, err
+func (s *StoragePlace) CanStore(volume Volume) (bool, error) {
+	if volume.Value() <= 0 {
+		return false, errors.New("Попытка разместить пустой или отрицательный объем")
 	}
 
-	canStore := s.orderId == uuid.Nil && s.totalVolume.GreaterThanOrEqual(volumeToStore)
+	canStore := s.orderId == uuid.Nil && s.totalVolume.CanFit(volume)
 
 	return canStore, nil
 }
 
-func (s *StoragePlace) Store(orderId uuid.UUID, volume int) error {
+func (s *StoragePlace) Store(orderId uuid.UUID, volume Volume) error {
 	canStore, err := s.CanStore(volume)
 
 	if err != nil { return err }

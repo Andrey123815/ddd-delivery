@@ -1,51 +1,86 @@
 package courier
 
-import (
-	"testing"
-)
+import "testing"
 
-func Test_NewVolumeCreatedAtValidParams(t *testing.T) {
-	v, err := NewVolume(10)
+func Test_NewVolumeValidAtValidParams(t *testing.T) {
+	volume, err := NewVolume(50)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if v.Volume() != 10 {
-		t.Errorf("Volume() = %d, want 10", v.Volume())
-	}
-
-	v, err = NewVolume(1)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if v.Volume() != 1 {
-		t.Errorf("Volume() = %d, want 1", v.Volume())
+	if volume.Value() != 50 {
+		t.Errorf("Value() = %d, want 50", volume.Value())
 	}
 }
 
-func Test_NewVolumeReturnsErrorAtZeroOrNegative(t *testing.T) {
+func Test_NewVolumeReturnsErrorAtZero(t *testing.T) {
 	_, err := NewVolume(0)
 	if err == nil {
-		t.Error("expected error for volume 0")
+		t.Error("expected error for volume = 0")
 	}
+}
 
-	_, err = NewVolume(-5)
+func Test_NewVolumeReturnsErrorAtNegative(t *testing.T) {
+	_, err := NewVolume(-1)
+	if err == nil {
+		t.Error("expected error for negative volume")
+	}
+	_, err = NewVolume(-100)
 	if err == nil {
 		t.Error("expected error for negative volume")
 	}
 }
 
-func Test_VolumeEqualsReturnsCorrectResult(t *testing.T) {
-	a, _ := NewVolume(5)
-	b, _ := NewVolume(5)
-	c, _ := NewVolume(10)
+func Test_VolumeEquals(t *testing.T) {
+	volume1, _ := NewVolume(50)
+	volume2, _ := NewVolume(50)
+	volume3, _ := NewVolume(100)
+	
+	if !volume1.Equals(volume2) {
+		t.Error("volumes with same value should be equal")
+	}
+	
+	if volume1.Equals(volume3) {
+		t.Error("volumes with different values should not be equal")
+	}
+}
 
-	if !a.Equals(b) {
-		t.Error("same volume should be equal")
+func Test_VolumeCanFit(t *testing.T) {
+	large, _ := NewVolume(100)
+	small, _ := NewVolume(50)
+	exact, _ := NewVolume(100)
+	
+	if !large.CanFit(small) {
+		t.Error("larger volume should fit smaller")
 	}
-	if a.Equals(c) {
-		t.Error("different volumes should not be equal")
+	
+	if !large.CanFit(exact) {
+		t.Error("volume should fit exact match")
 	}
-	if !a.Equals(a) {
-		t.Error("volume should equal itself")
+	
+	if small.CanFit(large) {
+		t.Error("smaller volume should not fit larger")
+	}
+}
+
+func Test_VolumeGreaterThanOrEqual(t *testing.T) {
+	volume1, _ := NewVolume(100)
+	volume2, _ := NewVolume(100)
+	volume3, _ := NewVolume(50)
+	volume4, _ := NewVolume(150)
+	
+	if !volume1.GreaterThanOrEqual(volume2) {
+		t.Error("equal volumes should be greater than or equal")
+	}
+	
+	if !volume1.GreaterThanOrEqual(volume3) {
+		t.Error("100 should be >= 50")
+	}
+	
+	if volume3.GreaterThanOrEqual(volume1) {
+		t.Error("50 should not be >= 100")
+	}
+	
+	if volume1.GreaterThanOrEqual(volume4) {
+		t.Error("100 should not be >= 150")
 	}
 }

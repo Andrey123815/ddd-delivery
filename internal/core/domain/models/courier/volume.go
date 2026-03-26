@@ -1,31 +1,30 @@
 package courier
 
-import (
-	"errors"
-)
+import "errors"
 
 type Volume struct {
-	volume int
+	value int
 }
 
-func NewVolume(volume int) (*Volume, error) {
-	if volume <= 0 {
-		return nil, errors.New("Объем не может быть меньше или равным 0")
+func NewVolume(value int) (Volume, error) {
+	if value <= 0 {
+		return Volume{}, errors.New("объем должен быть больше нуля")
 	}
-
-	return &Volume{
-		volume: volume,
-	}, nil
+	return Volume{value: value}, nil
 }
 
-func (v *Volume) Equals(other *Volume) bool {
-	return v.volume == other.volume
+func (v Volume) Value() int {
+	return v.value
 }
 
-func (v *Volume) Volume() int {
-	return v.volume
+func (v Volume) Equals(other Volume) bool {
+	return v.value == other.value
 }
 
-func (v *Volume) GreaterThanOrEqual(other *Volume) bool {
-	return v.volume >= other.volume
+func (v Volume) CanFit(required Volume) bool {
+	return v.value >= required.value
+}
+
+func (v Volume) GreaterThanOrEqual(other Volume) bool {
+	return v.value >= other.value
 }
