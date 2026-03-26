@@ -15,6 +15,7 @@ type UnitOfWork interface {
 
 	Begin(ctx context.Context)
 	Commit(ctx context.Context) error
+	RollbackUnlessCommitted(ctx context.Context)
 
 	CourierRepository() CourierRepository
 	OrderRepository() OrderRepository

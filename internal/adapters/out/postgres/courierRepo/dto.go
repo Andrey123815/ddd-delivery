@@ -5,7 +5,7 @@ import (
 )
 
 type CourierDTO struct {
-	ID        uuid.UUID   `gorm:"type:uuid;primaryKey"`
+	Id        uuid.UUID   `gorm:"type:uuid;primaryKey"`
 	Name      string      `gorm:"type:varchar(255)"`
 	Speed     int         `gorm:"type:int"`
 	Location  LocationDTO `gorm:"embedded;embeddedPrefix:location_"`
@@ -13,7 +13,7 @@ type CourierDTO struct {
 }
 
 type StoragePlaceDTO struct {
-	ID        uuid.UUID   `gorm:"type:uuid;primaryKey"`
+	Id        uuid.UUID   `gorm:"type:uuid;primaryKey"`
 	CourierID uuid.UUID   `gorm:"type:uuid;index"`
 	Name      string      `gorm:"type:varchar(255)"`
 	TotalVolume int       `gorm:"type:int"`

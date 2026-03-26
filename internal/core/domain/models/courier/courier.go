@@ -61,7 +61,7 @@ func (c *Courier)Equals(other Courier) bool {
 	return c.id == other.id;
 }
 
-func (c *Courier)ID() uuid.UUID {
+func (c *Courier)Id() uuid.UUID {
 	return c.id;
 }
 

@@ -185,7 +185,7 @@ func Test_StoragePlaceClearReturnsErrorAtWrongOrderId(t *testing.T) {
 	place, _ := NewStoragePlace("Склад", mustNewVolume(50))
 	_ = place.Store(uuid.New(), mustNewVolume(20))
 	
-	err := place.Clear(uuid.New()) // другой ID
+	err := place.Clear(uuid.New()) // другой Id
 	if err == nil {
 		t.Error("expected error when clearing with wrong order id")
 	}
