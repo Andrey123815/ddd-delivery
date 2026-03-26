@@ -3,7 +3,7 @@ package courier
 import (
 	"testing"
 
-	"delivery/internal/core/domain/kernel"
+	"delivery/internal/core/domain/models/kernel"
 
 	orderModel "delivery/internal/core/domain/models/order"
 
@@ -210,7 +210,7 @@ func Test_CourierCompleteOrderSucceedsAndClearsStorage(t *testing.T) {
 	c, _ := NewCourier("Курьер", mustNewSpeed(5), loc)
 	_ = c.AddStoragePlace("Склад", mustNewVolume(100))
 	ord, _ := orderModel.NewOrder(loc, 10)
-	
+
 	err := c.TakeOrder(ord)
 	if err != nil {
 		t.Fatalf("TakeOrder failed: %v", err)
@@ -353,12 +353,12 @@ func Test_CourierFindStoragePlaceByOrderIdReturnsPlaceWhenFound(t *testing.T) {
 	c, _ := NewCourier("Курьер", mustNewSpeed(5), loc)
 	_ = c.AddStoragePlace("Склад", mustNewVolume(100))
 	ord, _ := orderModel.NewOrder(loc, 10)
-	
+
 	err := c.TakeOrder(ord)
 	if err != nil {
 		t.Fatalf("TakeOrder failed: %v", err)
 	}
-	
+
 	place, err := c.findStoragePlaceByOrderId(ord.Id())
 	if err != nil {
 		t.Fatalf("findStoragePlaceByOrderId failed: %v", err)

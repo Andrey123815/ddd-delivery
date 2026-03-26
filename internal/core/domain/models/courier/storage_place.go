@@ -82,15 +82,19 @@ func (s *StoragePlace) Store(orderId uuid.UUID, volume Volume) error {
 }
 
 func (s *StoragePlace) Clear(orderId uuid.UUID) error {
-	if s.isOccupied() == false { return errors.New("Попытка очистить пустое хранилище") }
+	if !s.IsOccupied() { 
+		return errors.New("Попытка очистить пустое хранилище") 
+	}
 
-	if s.orderId != orderId { return fmt.Errorf("ордера с id %s нет в хранилище", orderId) }
+	if s.orderId != orderId { 
+		return fmt.Errorf("ордера с id %s нет в хранилище", orderId) 
+	}
 
 	s.orderId = uuid.Nil
 
 	return nil
 }
 
-func (s *StoragePlace) isOccupied() bool {
+func (s *StoragePlace) IsOccupied() bool {
 	return s.orderId != uuid.Nil
 }
