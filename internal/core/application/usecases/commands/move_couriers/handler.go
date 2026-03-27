@@ -7,7 +7,7 @@ import (
 )
 
 type MoveCouriersHandler interface {
-	Handle(ctx context.Context, command *MoveCouriersCommand) error
+	Handle(ctx context.Context) error
 }
 
 var _ MoveCouriersHandler = &moveCouriersHandler{}
@@ -24,11 +24,7 @@ func NewMoveCouriersHandler(uow ports.UnitOfWork) (MoveCouriersHandler, error) {
 	return &moveCouriersHandler{uow: uow}, nil
 }
 
-func (h *moveCouriersHandler) Handle(ctx context.Context, command *MoveCouriersCommand) error {
-	if command == nil {
-		return errs.NewValueIsRequired("command")
-	}
-
+func (h *moveCouriersHandler) Handle(ctx context.Context) error {
 	h.uow.Begin(ctx)
 	defer h.uow.RollbackUnlessCommitted(ctx)
 

@@ -62,20 +62,27 @@ func (r *Repository) Get(ctx context.Context, Id uuid.UUID) (*order.Order, error
 }
 
 func (r *Repository) GetFirstInCreatedStatus(ctx context.Context) (*order.Order, error) {
-	dto := OrderDTO{}
+	dtos := []*OrderDTO{}
 
-	err := r.uow.Tx().WithContext(ctx).Preload(clause.Associations).First(&dto, "status = ?", order.OrderStatusCreated).Error
+	err := r.uow.Tx().WithContext(ctx).
+		Preload(clause.Associations).
+		Where("status = ?", order.OrderStatusCreated).
+		Limit(1).
+		Find(&dtos).Error
 	if err != nil {
 		return nil, err
 	}
+	if len(dtos) == 0 {
+		return nil, nil
+	}
 
-	return DtoToDomain(dto), nil
+	return DtoToDomain(*dtos[0]), nil
 }
 
 func (r *Repository) GetAllInAssignedStatus(ctx context.Context) ([]*order.Order, error) {
 	dtos := []*OrderDTO{}
 
-	err := r.uow.Tx().WithContext(ctx).Preload(clause.Associations).Find(&dtos).Where("status = ?", order.OrderStatusAssigned).Error
+	err := r.uow.Tx().WithContext(ctx).Preload(clause.Associations).Where("status = ?", order.OrderStatusAssigned).Find(&dtos).Error
 	if err != nil {
 		return nil, err
 	}

@@ -40,12 +40,15 @@ func NewAssignCourierHandler(orderRepo ports.OrderRepository, courierRepo ports.
 }
 
 func (h *assignCourierHandler) Handle(ctx context.Context) error {
+	h.uow.Begin(ctx)
+	defer h.uow.RollbackUnlessCommitted(ctx)
+
 	noAssignedOrder, err := h.orderRepo.GetFirstInCreatedStatus(ctx)
 	if err != nil {
 		return err
 	}
 	if noAssignedOrder == nil {
-		return errs.NewValueIsRequired("noAssignedOrder")
+		return nil
 	}
 
 	availableCouriers, err := h.courierRepo.GetAllAvailableCouriers(ctx)
@@ -53,7 +56,7 @@ func (h *assignCourierHandler) Handle(ctx context.Context) error {
 		return err
 	}
 	if len(availableCouriers) == 0 {
-		return errs.NewValueIsRequired("availableCouriers")
+		return nil
 	}
 
 	courier, err := h.orderDispatcherService.ReserveCourierForOrder(noAssignedOrder, availableCouriers)
@@ -63,9 +66,6 @@ func (h *assignCourierHandler) Handle(ctx context.Context) error {
 	if courier == nil {
 		return errs.NewValueIsRequired("courier")
 	}
-
-	h.uow.Begin(ctx)
-	defer h.uow.RollbackUnlessCommitted(ctx)
 
 	if err := h.uow.OrderRepository().Update(ctx, noAssignedOrder); err != nil {
 		return err
