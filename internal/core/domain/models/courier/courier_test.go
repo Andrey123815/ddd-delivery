@@ -85,6 +85,40 @@ func Test_CourierEqualsReturnsCorrectResult(t *testing.T) {
 	}
 }
 
+func Test_CourierIsFreeFalseWhenNoStoragePlaces(t *testing.T) {
+	loc, _ := kernel.NewLocation(1, 1)
+	c, _ := NewCourier("Курьер", mustNewSpeed(5), loc)
+	if c.IsFree() {
+		t.Error("IsFree() should be false without storage places (некуда нести заказ)")
+	}
+}
+
+func Test_CourierIsFreeTrueWhenAllPlacesEmpty(t *testing.T) {
+	loc, _ := kernel.NewLocation(1, 1)
+	c, _ := NewCourier("Курьер", mustNewSpeed(5), loc)
+	if err := c.AddStoragePlace("Склад", mustNewVolume(100)); err != nil {
+		t.Fatal(err)
+	}
+	if !c.IsFree() {
+		t.Error("IsFree() should be true when no order in storage")
+	}
+}
+
+func Test_CourierIsFreeFalseWhenPlaceOccupied(t *testing.T) {
+	loc, _ := kernel.NewLocation(1, 1)
+	c, _ := NewCourier("Курьер", mustNewSpeed(5), loc)
+	if err := c.AddStoragePlace("Склад", mustNewVolume(100)); err != nil {
+		t.Fatal(err)
+	}
+	ord, _ := orderModel.NewOrder(loc, 10)
+	if err := c.TakeOrder(ord); err != nil {
+		t.Fatal(err)
+	}
+	if c.IsFree() {
+		t.Error("IsFree() should be false after TakeOrder")
+	}
+}
+
 func Test_CourierAddStoragePlaceSucceeds(t *testing.T) {
 	loc, _ := kernel.NewLocation(1, 1)
 	c, _ := NewCourier("Курьер", mustNewSpeed(5), loc)

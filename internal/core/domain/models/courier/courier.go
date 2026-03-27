@@ -81,6 +81,20 @@ func (c *Courier)StoragePlaces() []*StoragePlace  {
 	return c.storagePlaces;
 }
 
+// True есть хотя бы одно место хранения и ни одно не занято заказом
+func (c *Courier) IsFree() bool {
+	if len(c.storagePlaces) == 0 {
+		return false
+	}
+	for _, sp := range c.storagePlaces {
+		if sp != nil && sp.IsOccupied() {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (c *Courier)AddStoragePlace(name string, volume Volume) error {
 	storagePlace, err := NewStoragePlace(name, volume)
 	if err != nil {

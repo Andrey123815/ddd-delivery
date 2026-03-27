@@ -11,5 +11,6 @@ type CourierRepository interface {
 	Add(ctx context.Context, aggregate *courier.Courier) error
 	Update(ctx context.Context, aggregate *courier.Courier) error
 	Get(ctx context.Context, id uuid.UUID) (*courier.Courier, error)
+	GetAll(ctx context.Context) ([]*courier.Courier, error)
 	GetAllAvailableCouriers(ctx context.Context) ([]*courier.Courier, error)
 }

@@ -35,7 +35,7 @@ func (h *getAllCouriersHandler) Handle(ctx context.Context, query *GetAllCourier
 
 	uow.Begin(ctx)
 
-	couriers, err := uow.CourierRepository().GetAllAvailableCouriers(ctx)
+	couriers, err := uow.CourierRepository().GetAll(ctx)
 	if err != nil {
 		return nil, err
 	}

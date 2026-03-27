@@ -53,6 +53,11 @@ func (h *moveCouriersHandler) Handle(ctx context.Context) error {
 				return err
 			}
 
+			err = assignedOrder.Complete(courier.Id())
+			if err != nil {
+				return err
+			}
+
 			err = h.uow.OrderRepository().Update(ctx, assignedOrder)
 			if err != nil {
 				return err

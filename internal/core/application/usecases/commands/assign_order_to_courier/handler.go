@@ -5,7 +5,7 @@ import (
 	"delivery/internal/core/domain/services"
 	"delivery/internal/core/ports"
 	"delivery/internal/pkg/errs"
-)	
+)
 
 type AssignCourierHandler interface {
 	Handle(ctx context.Context) error
@@ -14,11 +14,11 @@ type AssignCourierHandler interface {
 var _ AssignCourierHandler = &assignCourierHandler{}
 
 type assignCourierHandler struct {
-	orderRepo ports.OrderRepository
-	courierRepo ports.CourierRepository
+	orderRepo              ports.OrderRepository
+	courierRepo            ports.CourierRepository
 	orderDispatcherService services.OrderDispatcherService
-	uow ports.UnitOfWork
-}	
+	uow                    ports.UnitOfWork
+}
 
 func NewAssignCourierHandler(orderRepo ports.OrderRepository, courierRepo ports.CourierRepository, orderDispatcherService services.OrderDispatcherService, uow ports.UnitOfWork) (AssignCourierHandler, error) {
 	if orderRepo == nil {
@@ -30,12 +30,12 @@ func NewAssignCourierHandler(orderRepo ports.OrderRepository, courierRepo ports.
 	if orderDispatcherService == nil {
 		return nil, errs.NewValueIsRequired("orderDispatcherService")
 	}
-	
+
 	return &assignCourierHandler{
-		orderRepo: orderRepo,
-		courierRepo: courierRepo,
+		orderRepo:              orderRepo,
+		courierRepo:            courierRepo,
 		orderDispatcherService: orderDispatcherService,
-		uow: uow,
+		uow:                    uow,
 	}, nil
 }
 

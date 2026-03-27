@@ -24,6 +24,6 @@ func NewMoveCouriersJob(handler commands.MoveCouriersHandler) (cron.Job, error) 
 
 func (j *MoveCouriersJob) Run() {
 	if err := j.handler.Handle(context.Background()); err != nil {
-		log.Error(err)
+		log.Errorf("MoveCouriersJob: %v", err)
 	}
 }

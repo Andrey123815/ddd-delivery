@@ -28,14 +28,9 @@ func NewRepository(uow ports.UnitOfWork) (*Repository, error) {
 func (r *Repository) Add(ctx context.Context, aggregate *order.Order) error {
 	r.uow.Track(aggregate)
 
-  dto := DomainToDTO(aggregate)
+	dto := DomainToDTO(aggregate)
 
-	err := r.uow.Tx().WithContext(ctx).Session(&gorm.Session{FullSaveAssociations: true}).Create(&dto).Error
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return r.uow.Tx().WithContext(ctx).Session(&gorm.Session{FullSaveAssociations: true}).Create(&dto).Error
 }
 
 func (r *Repository) Update(ctx context.Context, aggregate *order.Order) error {
@@ -43,11 +38,7 @@ func (r *Repository) Update(ctx context.Context, aggregate *order.Order) error {
 
 	dto := DomainToDTO(aggregate)
 
-	err := r.uow.Tx().WithContext(ctx).Session(&gorm.Session{FullSaveAssociations: true}).Save(&dto).Error
-	if err != nil {
-		return err
-	}
-	return nil
+	return r.uow.Tx().WithContext(ctx).Session(&gorm.Session{FullSaveAssociations: true}).Save(&dto).Error
 }
 
 func (r *Repository) Get(ctx context.Context, Id uuid.UUID) (*order.Order, error) {
@@ -112,4 +103,16 @@ func (r *Repository) GetNotCompleted(ctx context.Context) ([]*order.Order, error
 	}
 
 	return orders, nil
+}
+
+func (r *Repository) GetCourierIDsWithAssignedOrders(ctx context.Context) ([]uuid.UUID, error) {
+	var ids []uuid.UUID
+	err := r.uow.Tx().WithContext(ctx).Model(&OrderDTO{}).
+		Distinct("courier_id").
+		Where("status = ? AND courier_id IS NOT NULL AND courier_id != ?", order.OrderStatusAssigned, uuid.Nil).
+		Pluck("courier_id", &ids).Error
+	if err != nil {
+		return nil, err
+	}
+	return ids, nil
 }
