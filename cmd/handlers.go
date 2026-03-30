@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"delivery/internal/adapters/out/grpc/geo"
 	"delivery/internal/adapters/out/postgres"
 	"delivery/internal/core/application/usecases/commands"
 	assignCourier "delivery/internal/core/application/usecases/commands/assign_order_to_courier"
@@ -31,7 +32,13 @@ func (cr *CompositionRoot) NewCreateOrderHandler() commands.CreateOrderHandler {
 	if err != nil {
 		log.Fatalf("cannot create UnitOfWork: %v", err)
 	}
-	handler, err := createOrder.NewCreateOrderHandler(uow)
+
+	geoClient, err := geo.NewClient(cr.configs.GeoServiceGrpcHost)
+	if err != nil {
+		log.Fatalf("cannot create GeoClient: %v", err)
+	}
+	
+	handler, err := createOrder.NewCreateOrderHandler(uow, geoClient)
 	if err != nil {
 		log.Fatalf("cannot create CreateOrderHandler: %v", err)
 	}

@@ -5,12 +5,12 @@ import (
 	"delivery/internal/generated/servers"
 	"net/http"
 
-	openapi_types "github.com/oapi-codegen/runtime/types"
 	"github.com/labstack/echo/v4"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 func (s *Server) CreateOrder(c echo.Context) error {
-	command, err := createOrder.NewCreateOrderCommand()
+	command, err := createOrder.NewCreateOrderCommand("Тестировочная")
 	if err != nil {
 		return err
 	}
