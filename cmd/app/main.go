@@ -23,6 +23,7 @@ func main() {
 	compositionRoot := cmd.NewCompositionRoot(config)
 	defer compositionRoot.CloseAll()
 
+	startKafkaProducers(compositionRoot)
 	startCron(compositionRoot)
 	startKafkaConsumer(compositionRoot)
 	startWebServer(compositionRoot, config.HttpPort)
@@ -92,6 +93,24 @@ func startWebServer(cr *cmd.CompositionRoot, port string) {
 	servers.RegisterHandlers(e, httpServer)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf("0.0.0.0:%s", port)))
+}
+
+func startKafkaProducers(cr *cmd.CompositionRoot) {
+	orderCompletedProducer, err := cr.NewOrderCompletedProducer()
+	if err != nil {
+		log.Fatalf("cannot create OrderCompletedProducer: %v", err)
+	}
+	cr.RegisterCloser(orderCompletedProducer)
+
+	orderAssignedProducer, err := cr.NewOrderAssignedProducer()
+	if err != nil {
+		log.Fatalf("cannot create OrderAssignedProducer: %v", err)
+	}
+	cr.RegisterCloser(orderAssignedProducer)
+
+	if err := cmd.RegisterMediatrNotificationHandlers(orderCompletedProducer, orderAssignedProducer); err != nil {
+		log.Fatalf("cannot register mediatr handlers: %v", err)
+	}
 }
 
 func startKafkaConsumer(cr *cmd.CompositionRoot) {

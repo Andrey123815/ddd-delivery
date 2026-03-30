@@ -10,6 +10,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/labstack/echo/v4 v4.13.4
 	github.com/labstack/gommon v0.4.2
+	github.com/mehdihadeli/go-mediatr v1.4.0
 	github.com/oapi-codegen/runtime v1.3.1
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/shopspring/decimal v1.4.0

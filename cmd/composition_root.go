@@ -2,6 +2,7 @@ package cmd
 
 import (
 	kafkain "delivery/internal/adapters/in/kafka"
+	kafkaout "delivery/internal/adapters/out/kafka"
 	"delivery/internal/jobs"
 	"log"
 
@@ -59,9 +60,23 @@ func (cr *CompositionRoot) CloseAll() {
 
 func (cr *CompositionRoot) NewBasketConfirmedConsumer() (*kafkain.BasketConfirmedConsumer, error) {
 	return kafkain.NewBasketConfirmedConsumer(
-		[]string{cr.configs.KafkaHost},
+		cr.configs.KafkaBrokers(),
 		cr.configs.KafkaConsumerGroup,
 		cr.configs.KafkaBasketEventsTopic,
 		cr.NewCreateOrderHandler(),
+	)
+}
+
+func (cr *CompositionRoot) NewOrderAssignedProducer() (*kafkaout.OrderAssignedProducer, error) {
+	return kafkaout.NewOrderAssignedProducer(
+		cr.configs.KafkaBrokers(),
+		cr.configs.KafkaOrderEventsTopic,
+	)
+}
+
+func (cr *CompositionRoot) NewOrderCompletedProducer() (*kafkaout.OrderCompletedProducer, error) {
+	return kafkaout.NewOrderCompletedProducer(
+		cr.configs.KafkaBrokers(),
+		cr.configs.KafkaOrderEventsTopic,
 	)
 }

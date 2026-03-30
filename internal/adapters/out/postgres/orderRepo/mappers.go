@@ -1,4 +1,4 @@
-package courierRepo
+package orderRepo
 
 import (
 	"delivery/internal/core/domain/models/kernel"

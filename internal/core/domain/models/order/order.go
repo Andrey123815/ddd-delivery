@@ -1,7 +1,9 @@
 package order
 
 import (
+	"delivery/internal/core/application/usecases/events"
 	"delivery/internal/core/domain/models/kernel"
+	"delivery/internal/pkg/ddd"
 	"errors"
 	"fmt"
 
@@ -14,6 +16,8 @@ type Order struct {
 	location kernel.Location
 	volume int
 	status OrderStatus
+
+	domainEvents []ddd.DomainEvent
 }
 
 func NewOrder(location kernel.Location, volume int) (*Order, error) {
@@ -81,6 +85,8 @@ func (o *Order)Assign(courierId uuid.UUID) error {
 	o.courierId = courierId
 	o.status = OrderStatusAssigned
 
+	o.RaiseDomainEvent(events.NewOrderAssignedDomainEvent(o.id))
+
 	return nil
 }
 
@@ -96,5 +102,20 @@ func (o *Order)Complete(courierId uuid.UUID) error {
 	}
 
 	o.status = OrderStatusCompleted
+
+	o.RaiseDomainEvent(events.NewOrderCompletedDomainEvent(o.id))
+
 	return nil
+}
+
+func (o *Order)GetDomainEvents() []ddd.DomainEvent {
+	return o.domainEvents
+}
+
+func (o *Order)ClearDomainEvents() {
+	o.domainEvents = []ddd.DomainEvent{}
+}
+
+func (o *Order)RaiseDomainEvent(event ddd.DomainEvent) {
+	o.domainEvents = append(o.domainEvents, event)
 }
