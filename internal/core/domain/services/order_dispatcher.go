@@ -1,10 +1,11 @@
 package services
 
 import (
-	courierModel "delivery/internal/core/domain/models/courier"
-	orderModel "delivery/internal/core/domain/models/order"
 	"errors"
 	"fmt"
+
+	courierModel "delivery/internal/core/domain/models/courier"
+	orderModel "delivery/internal/core/domain/models/order"
 )
 
 type OrderDispatcherService interface {
@@ -19,7 +20,7 @@ func NewOrderDispatcher() OrderDispatcherService {
 	return &orderDispatcherService{}
 }
 
-func (o *orderDispatcherService) ReserveCourierForOrder(order *orderModel.Order, couriers []*courierModel.Courier) (*courierModel.Courier, error)  {
+func (o *orderDispatcherService) ReserveCourierForOrder(order *orderModel.Order, couriers []*courierModel.Courier) (*courierModel.Courier, error) {
 	if order == nil {
 		return nil, errors.New("Заказ для прикрепления к курьеру не передан")
 	}

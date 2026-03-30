@@ -2,46 +2,60 @@ package createOrder
 
 import (
 	"context"
+
 	"delivery/internal/core/domain/models/kernel"
 	orderModel "delivery/internal/core/domain/models/order"
 	"delivery/internal/core/ports"
 	"delivery/internal/pkg/errs"
+
+	"github.com/google/uuid"
 )
 
 type CreateOrderHandler interface {
-	Handle(ctx context.Context, command *CreateOrderCommand) error
+	Handle(ctx context.Context, command *CreateOrderCommand) (uuid.UUID, error)
 }
 
 var _ CreateOrderHandler = &createOrderHandler{}
 
 type createOrderHandler struct {
-	orderRepo ports.OrderRepository
+	uow ports.UnitOfWork
 }
 
-func NewCreateOrderHandler(orderRepo ports.OrderRepository) (CreateOrderHandler, error) {
-	if orderRepo == nil {
-		return nil, errs.NewValueIsRequired("orderRepo")
+func NewCreateOrderHandler(uow ports.UnitOfWork) (CreateOrderHandler, error) {
+	if uow == nil {
+		return nil, errs.NewValueIsRequired("uow")
 	}
-	return &createOrderHandler{orderRepo: orderRepo}, nil
+	return &createOrderHandler{uow: uow}, nil
 }
 
-func (h *createOrderHandler) Handle(ctx context.Context, command *CreateOrderCommand) error {
+func (h *createOrderHandler) Handle(ctx context.Context, command *CreateOrderCommand) (uuid.UUID, error) {
 	if command == nil {
-		return errs.NewValueIsRequired("command")
+		return uuid.Nil, errs.NewValueIsRequired("command")
 	}
 	if !command.IsValid() {
-		return errs.NewValueIsInvalid("command")
+		return uuid.Nil, errs.NewValueIsInvalid("command")
 	}
 
-	location, err := kernel.NewLocation(uint8(1) ,uint8(1))
+	locPtr, err := kernel.NewRandomLocation()
 	if err != nil {
-		return err
+		return uuid.Nil, err
 	}
 
-	orderAggregate, err := orderModel.NewOrder(location, command.Volume())
+	orderAggregate, err := orderModel.NewOrder(*locPtr, command.Volume())
 	if err != nil {
-		return err
-	}	
+		return uuid.Nil, err
+	}
 
-	return h.orderRepo.Add(ctx, orderAggregate)
+	h.uow.Begin(ctx)
+	defer h.uow.RollbackUnlessCommitted(ctx)
+
+	if err := h.uow.OrderRepository().Add(ctx, orderAggregate); err != nil {
+		return uuid.Nil, err
+	}
+
+	if err := h.uow.Commit(ctx); err != nil {
+		return uuid.Nil, err
+	}
+
+	return orderAggregate.Id(), nil
 }

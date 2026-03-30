@@ -14,4 +14,5 @@ type OrderRepository interface {
 	GetFirstInCreatedStatus(ctx context.Context) (*order.Order, error)
 	GetAllInAssignedStatus(ctx context.Context) ([]*order.Order, error)
 	GetNotCompleted(ctx context.Context) ([]*order.Order, error)
+	GetCourierIDsWithAssignedOrders(ctx context.Context) ([]uuid.UUID, error)
 }

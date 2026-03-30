@@ -28,26 +28,18 @@ func NewRepository(uow ports.UnitOfWork) (*Repository, error) {
 func (r *Repository) Add(ctx context.Context, aggregate *courier.Courier) error {
 	r.uow.Track(aggregate)
 
-  dto := DomainToDTO(aggregate)
+	dto := DomainToDTO(aggregate)
 
-	err := r.uow.Tx().WithContext(ctx).Session(&gorm.Session{FullSaveAssociations: true}).Create(&dto).Error
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return r.uow.Tx().WithContext(ctx).Session(&gorm.Session{FullSaveAssociations: true}).Create(&dto).Error
 }
 
 func (r *Repository) Update(ctx context.Context, aggregate *courier.Courier) error {
 	r.uow.Track(aggregate)
 
 	dto := DomainToDTO(aggregate)
+	tx := r.uow.Tx().WithContext(ctx)
 
-	err := r.uow.Tx().WithContext(ctx).Session(&gorm.Session{FullSaveAssociations: true}).Save(&dto).Error
-	if err != nil {
-		return err
-	}
-	return nil
+	return tx.Session(&gorm.Session{FullSaveAssociations: true}).Save(&dto).Error
 }
 
 func (r *Repository) Get(ctx context.Context, Id uuid.UUID) (*courier.Courier, error) {
@@ -61,33 +53,32 @@ func (r *Repository) Get(ctx context.Context, Id uuid.UUID) (*courier.Courier, e
 	return DtoToDomain(dto), nil
 }
 
-func (r *Repository) GetAllAvailableCouriers(ctx context.Context) ([]*courier.Courier, error) {
+func (r *Repository) GetAll(ctx context.Context) ([]*courier.Courier, error) {
 	dtos := []*CourierDTO{}
-
-	err := r.uow.Tx().WithContext(ctx).Preload(clause.Associations).Find(&dtos).Error
-	if err != nil {
+	if err := r.uow.Tx().WithContext(ctx).Preload(clause.Associations).Find(&dtos).Error; err != nil {
 		return nil, err
 	}
 
-	couriers := make([]*courier.Courier, 0)
+	out := make([]*courier.Courier, 0, len(dtos))
 	for _, dto := range dtos {
-		courier := DtoToDomain(*dto)
+		out = append(out, DtoToDomain(*dto))
+	}
+	
+	return out, nil
+}
 
-		courierIsAvailable := true
-
-		for _, storagePlace := range courier.StoragePlaces() {
-			if storagePlace.IsOccupied() {
-				courierIsAvailable = false
-				break
-			}
-		}
-
-		if courierIsAvailable == false {
-			continue
-		}
-
-		couriers = append(couriers, DtoToDomain(*dto))
+func (r *Repository) GetAllAvailableCouriers(ctx context.Context) ([]*courier.Courier, error) {
+	var dtos []*CourierDTO
+	if err := r.uow.Tx().WithContext(ctx).Preload(clause.Associations).Find(&dtos).Error; err != nil {
+		return nil, err
 	}
 
-	return couriers, nil
+	freeCouriers := make([]*courier.Courier, 0, len(dtos))
+	for _, dto := range dtos {
+		c := DtoToDomain(*dto)
+		if c.IsFree() {
+			freeCouriers = append(freeCouriers, c)
+		}
+	}
+	return freeCouriers, nil
 }

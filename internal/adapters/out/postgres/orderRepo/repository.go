@@ -28,14 +28,9 @@ func NewRepository(uow ports.UnitOfWork) (*Repository, error) {
 func (r *Repository) Add(ctx context.Context, aggregate *order.Order) error {
 	r.uow.Track(aggregate)
 
-  dto := DomainToDTO(aggregate)
+	dto := DomainToDTO(aggregate)
 
-	err := r.uow.Tx().WithContext(ctx).Session(&gorm.Session{FullSaveAssociations: true}).Create(&dto).Error
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return r.uow.Tx().WithContext(ctx).Session(&gorm.Session{FullSaveAssociations: true}).Create(&dto).Error
 }
 
 func (r *Repository) Update(ctx context.Context, aggregate *order.Order) error {
@@ -43,11 +38,7 @@ func (r *Repository) Update(ctx context.Context, aggregate *order.Order) error {
 
 	dto := DomainToDTO(aggregate)
 
-	err := r.uow.Tx().WithContext(ctx).Session(&gorm.Session{FullSaveAssociations: true}).Save(&dto).Error
-	if err != nil {
-		return err
-	}
-	return nil
+	return r.uow.Tx().WithContext(ctx).Session(&gorm.Session{FullSaveAssociations: true}).Save(&dto).Error
 }
 
 func (r *Repository) Get(ctx context.Context, Id uuid.UUID) (*order.Order, error) {
@@ -62,20 +53,27 @@ func (r *Repository) Get(ctx context.Context, Id uuid.UUID) (*order.Order, error
 }
 
 func (r *Repository) GetFirstInCreatedStatus(ctx context.Context) (*order.Order, error) {
-	dto := OrderDTO{}
+	dtos := []*OrderDTO{}
 
-	err := r.uow.Tx().WithContext(ctx).Preload(clause.Associations).First(&dto, "status = ?", order.OrderStatusCreated).Error
+	err := r.uow.Tx().WithContext(ctx).
+		Preload(clause.Associations).
+		Where("status = ?", order.OrderStatusCreated).
+		Limit(1).
+		Find(&dtos).Error
 	if err != nil {
 		return nil, err
 	}
+	if len(dtos) == 0 {
+		return nil, nil
+	}
 
-	return DtoToDomain(dto), nil
+	return DtoToDomain(*dtos[0]), nil
 }
 
 func (r *Repository) GetAllInAssignedStatus(ctx context.Context) ([]*order.Order, error) {
 	dtos := []*OrderDTO{}
 
-	err := r.uow.Tx().WithContext(ctx).Preload(clause.Associations).Find(&dtos).Where("status = ?", order.OrderStatusAssigned).Error
+	err := r.uow.Tx().WithContext(ctx).Preload(clause.Associations).Where("status = ?", order.OrderStatusAssigned).Find(&dtos).Error
 	if err != nil {
 		return nil, err
 	}
@@ -105,4 +103,16 @@ func (r *Repository) GetNotCompleted(ctx context.Context) ([]*order.Order, error
 	}
 
 	return orders, nil
+}
+
+func (r *Repository) GetCourierIDsWithAssignedOrders(ctx context.Context) ([]uuid.UUID, error) {
+	var ids []uuid.UUID
+	err := r.uow.Tx().WithContext(ctx).Model(&OrderDTO{}).
+		Distinct("courier_id").
+		Where("status = ? AND courier_id IS NOT NULL AND courier_id != ?", order.OrderStatusAssigned, uuid.Nil).
+		Pluck("courier_id", &ids).Error
+	if err != nil {
+		return nil, err
+	}
+	return ids, nil
 }

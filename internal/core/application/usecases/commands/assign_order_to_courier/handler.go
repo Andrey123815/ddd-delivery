@@ -5,7 +5,7 @@ import (
 	"delivery/internal/core/domain/services"
 	"delivery/internal/core/ports"
 	"delivery/internal/pkg/errs"
-)	
+)
 
 type AssignCourierHandler interface {
 	Handle(ctx context.Context) error
@@ -14,11 +14,11 @@ type AssignCourierHandler interface {
 var _ AssignCourierHandler = &assignCourierHandler{}
 
 type assignCourierHandler struct {
-	orderRepo ports.OrderRepository
-	courierRepo ports.CourierRepository
+	orderRepo              ports.OrderRepository
+	courierRepo            ports.CourierRepository
 	orderDispatcherService services.OrderDispatcherService
-	uow ports.UnitOfWork
-}	
+	uow                    ports.UnitOfWork
+}
 
 func NewAssignCourierHandler(orderRepo ports.OrderRepository, courierRepo ports.CourierRepository, orderDispatcherService services.OrderDispatcherService, uow ports.UnitOfWork) (AssignCourierHandler, error) {
 	if orderRepo == nil {
@@ -30,22 +30,25 @@ func NewAssignCourierHandler(orderRepo ports.OrderRepository, courierRepo ports.
 	if orderDispatcherService == nil {
 		return nil, errs.NewValueIsRequired("orderDispatcherService")
 	}
-	
+
 	return &assignCourierHandler{
-		orderRepo: orderRepo,
-		courierRepo: courierRepo,
+		orderRepo:              orderRepo,
+		courierRepo:            courierRepo,
 		orderDispatcherService: orderDispatcherService,
-		uow: uow,
+		uow:                    uow,
 	}, nil
 }
 
 func (h *assignCourierHandler) Handle(ctx context.Context) error {
+	h.uow.Begin(ctx)
+	defer h.uow.RollbackUnlessCommitted(ctx)
+
 	noAssignedOrder, err := h.orderRepo.GetFirstInCreatedStatus(ctx)
 	if err != nil {
 		return err
 	}
 	if noAssignedOrder == nil {
-		return errs.NewValueIsRequired("noAssignedOrder")
+		return nil
 	}
 
 	availableCouriers, err := h.courierRepo.GetAllAvailableCouriers(ctx)
@@ -53,7 +56,7 @@ func (h *assignCourierHandler) Handle(ctx context.Context) error {
 		return err
 	}
 	if len(availableCouriers) == 0 {
-		return errs.NewValueIsRequired("availableCouriers")
+		return nil
 	}
 
 	courier, err := h.orderDispatcherService.ReserveCourierForOrder(noAssignedOrder, availableCouriers)
@@ -63,9 +66,6 @@ func (h *assignCourierHandler) Handle(ctx context.Context) error {
 	if courier == nil {
 		return errs.NewValueIsRequired("courier")
 	}
-
-	h.uow.Begin(ctx)
-	defer h.uow.RollbackUnlessCommitted(ctx)
 
 	if err := h.uow.OrderRepository().Update(ctx, noAssignedOrder); err != nil {
 		return err

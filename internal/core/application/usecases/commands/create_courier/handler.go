@@ -15,15 +15,15 @@ type CreateCourierHandler interface {
 var _ CreateCourierHandler = &createCourierHandler{}
 
 type createCourierHandler struct {
-	courierRepo ports.CourierRepository
+	uow ports.UnitOfWork
 }
 
-func NewCreateCourierHandler(courierRepo ports.CourierRepository) (CreateCourierHandler, error) {
-	if courierRepo == nil {
-		return nil, errs.NewValueIsRequired("courierRepo")
+func NewCreateCourierHandler(uow ports.UnitOfWork) (CreateCourierHandler, error) {
+	if uow == nil {
+		return nil, errs.NewValueIsRequired("uow")
 	}
 
-	return &createCourierHandler{courierRepo: courierRepo}, nil
+	return &createCourierHandler{uow: uow}, nil
 }
 
 func (h *createCourierHandler) Handle(ctx context.Context, command *CreateCourierCommand) error {
@@ -48,6 +48,13 @@ func (h *createCourierHandler) Handle(ctx context.Context, command *CreateCourie
 	if err != nil {
 		return err
 	}
-	
-	return h.courierRepo.Add(ctx, courierAggregate)
+
+	h.uow.Begin(ctx)
+	defer h.uow.RollbackUnlessCommitted(ctx)
+
+	if err := h.uow.CourierRepository().Add(ctx, courierAggregate); err != nil {
+		return err
+	}
+
+	return h.uow.Commit(ctx)
 }
