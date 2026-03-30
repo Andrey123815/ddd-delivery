@@ -2,6 +2,7 @@ package http
 
 import (
 	createOrder "delivery/internal/core/application/usecases/commands/create_order"
+	"delivery/internal/generated/queues/basketeventspb"
 	"delivery/internal/generated/servers"
 	"net/http"
 
@@ -10,7 +11,13 @@ import (
 )
 
 func (s *Server) CreateOrder(c echo.Context) error {
-	command, err := createOrder.NewCreateOrderCommand("Тестировочная")
+	command, err := createOrder.NewCreateOrderCommand(
+		"http-test-basket",
+		&basketeventspb.Address{Street: "Тестировочная"},
+		[]*basketeventspb.Item{{Title: "test", Quantity: 1}},
+		&basketeventspb.DeliveryPeriod{From: 9, To: 18},
+		1,
+	)
 	if err != nil {
 		return err
 	}

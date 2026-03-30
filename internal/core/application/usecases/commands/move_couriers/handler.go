@@ -13,28 +13,33 @@ type MoveCouriersHandler interface {
 var _ MoveCouriersHandler = &moveCouriersHandler{}
 
 type moveCouriersHandler struct {
-	uow ports.UnitOfWork
+	uowFactory ports.UnitOfWorkFactory
 }
 
-func NewMoveCouriersHandler(uow ports.UnitOfWork) (MoveCouriersHandler, error) {
-	if uow == nil {
-		return nil, errs.NewValueIsRequired("uow")
+func NewMoveCouriersHandler(uowFactory ports.UnitOfWorkFactory) (MoveCouriersHandler, error) {
+	if uowFactory == nil {
+		return nil, errs.NewValueIsRequired("uowFactory")
 	}
 
-	return &moveCouriersHandler{uow: uow}, nil
+	return &moveCouriersHandler{uowFactory: uowFactory}, nil
 }
 
 func (h *moveCouriersHandler) Handle(ctx context.Context) error {
-	h.uow.Begin(ctx)
-	defer h.uow.RollbackUnlessCommitted(ctx)
+	uow, err := h.uowFactory.New(ctx)
+	if err != nil {
+		return err
+	}
 
-	assignedOrders, err := h.uow.OrderRepository().GetAllInAssignedStatus(ctx)
+	uow.Begin(ctx)
+	defer uow.RollbackUnlessCommitted(ctx)
+
+	assignedOrders, err := uow.OrderRepository().GetAllInAssignedStatus(ctx)
 	if err != nil {
 		return err
 	}
 
 	for _, assignedOrder := range assignedOrders {
-		courier, err := h.uow.CourierRepository().Get(ctx, assignedOrder.CourierId())
+		courier, err := uow.CourierRepository().Get(ctx, assignedOrder.CourierId())
 		if err != nil {
 			return err
 		}
@@ -58,18 +63,18 @@ func (h *moveCouriersHandler) Handle(ctx context.Context) error {
 				return err
 			}
 
-			err = h.uow.OrderRepository().Update(ctx, assignedOrder)
+			err = uow.OrderRepository().Update(ctx, assignedOrder)
 			if err != nil {
 				return err
 			}
 		}
 
-		err = h.uow.CourierRepository().Update(ctx, courier)
+		err = uow.CourierRepository().Update(ctx, courier)
 		if err != nil {
 			return err
 		}
 	}
 
-	return h.uow.Commit(ctx)
+	return uow.Commit(ctx)
 }
 

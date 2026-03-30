@@ -14,36 +14,34 @@ type AssignCourierHandler interface {
 var _ AssignCourierHandler = &assignCourierHandler{}
 
 type assignCourierHandler struct {
-	orderRepo              ports.OrderRepository
-	courierRepo            ports.CourierRepository
 	orderDispatcherService services.OrderDispatcherService
-	uow                    ports.UnitOfWork
+	uowFactory             ports.UnitOfWorkFactory
 }
 
-func NewAssignCourierHandler(orderRepo ports.OrderRepository, courierRepo ports.CourierRepository, orderDispatcherService services.OrderDispatcherService, uow ports.UnitOfWork) (AssignCourierHandler, error) {
-	if orderRepo == nil {
-		return nil, errs.NewValueIsRequired("orderRepo")
-	}
-	if courierRepo == nil {
-		return nil, errs.NewValueIsRequired("courierRepo")
-	}
+func NewAssignCourierHandler(orderDispatcherService services.OrderDispatcherService, uowFactory ports.UnitOfWorkFactory) (AssignCourierHandler, error) {
 	if orderDispatcherService == nil {
 		return nil, errs.NewValueIsRequired("orderDispatcherService")
 	}
+	if uowFactory == nil {
+		return nil, errs.NewValueIsRequired("uowFactory")
+	}
 
 	return &assignCourierHandler{
-		orderRepo:              orderRepo,
-		courierRepo:            courierRepo,
 		orderDispatcherService: orderDispatcherService,
-		uow:                    uow,
+		uowFactory:             uowFactory,
 	}, nil
 }
 
 func (h *assignCourierHandler) Handle(ctx context.Context) error {
-	h.uow.Begin(ctx)
-	defer h.uow.RollbackUnlessCommitted(ctx)
+	uow, err := h.uowFactory.New(ctx)
+	if err != nil {
+		return err
+	}
 
-	noAssignedOrder, err := h.orderRepo.GetFirstInCreatedStatus(ctx)
+	uow.Begin(ctx)
+	defer uow.RollbackUnlessCommitted(ctx)
+
+	noAssignedOrder, err := uow.OrderRepository().GetFirstInCreatedStatus(ctx)
 	if err != nil {
 		return err
 	}
@@ -51,7 +49,7 @@ func (h *assignCourierHandler) Handle(ctx context.Context) error {
 		return nil
 	}
 
-	availableCouriers, err := h.courierRepo.GetAllAvailableCouriers(ctx)
+	availableCouriers, err := uow.CourierRepository().GetAllAvailableCouriers(ctx)
 	if err != nil {
 		return err
 	}
@@ -67,13 +65,13 @@ func (h *assignCourierHandler) Handle(ctx context.Context) error {
 		return errs.NewValueIsRequired("courier")
 	}
 
-	if err := h.uow.OrderRepository().Update(ctx, noAssignedOrder); err != nil {
+	if err := uow.OrderRepository().Update(ctx, noAssignedOrder); err != nil {
 		return err
 	}
 
-	if err := h.uow.CourierRepository().Update(ctx, courier); err != nil {
+	if err := uow.CourierRepository().Update(ctx, courier); err != nil {
 		return err
 	}
 
-	return h.uow.Commit(ctx)
+	return uow.Commit(ctx)
 }

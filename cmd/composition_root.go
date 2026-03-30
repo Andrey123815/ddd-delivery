@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	kafkain "delivery/internal/adapters/in/kafka"
 	"delivery/internal/jobs"
 	"log"
 
@@ -53,4 +54,14 @@ func (cr *CompositionRoot) CloseAll() {
 			log.Printf("close error: %v", err)
 		}
 	}
+}
+
+
+func (cr *CompositionRoot) NewBasketConfirmedConsumer() (*kafkain.BasketConfirmedConsumer, error) {
+	return kafkain.NewBasketConfirmedConsumer(
+		[]string{cr.configs.KafkaHost},
+		cr.configs.KafkaConsumerGroup,
+		cr.configs.KafkaBasketEventsTopic,
+		cr.NewCreateOrderHandler(),
+	)
 }
