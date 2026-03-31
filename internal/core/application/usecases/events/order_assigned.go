@@ -7,29 +7,30 @@ import (
 const OrderAssignedDomainEventName = "order.assigned.event"
 
 type OrderAssignedDomainEvent struct {
-	id uuid.UUID
-	name string
-
-	orderId uuid.UUID
+	ID      uuid.UUID
+	Name    string
+	OrderID uuid.UUID
 }
 
 func NewOrderAssignedDomainEvent(orderId uuid.UUID) *OrderAssignedDomainEvent {
 	return &OrderAssignedDomainEvent{
-		id: uuid.New(),
-		name: OrderAssignedDomainEventName,
-		
-		orderId: orderId,
+		ID:      uuid.New(),
+		Name:    OrderAssignedDomainEventName,
+		OrderID: orderId,
 	}
 }
 
 func (e *OrderAssignedDomainEvent) GetID() uuid.UUID {
-	return e.id
+	return e.ID
 }
 
 func (e *OrderAssignedDomainEvent) GetName() string {
-	return e.name
+	if e.Name != "" {
+		return e.Name
+	}
+	return OrderAssignedDomainEventName
 }
 
 func (e *OrderAssignedDomainEvent) GetOrderId() uuid.UUID {
-	return e.orderId
+	return e.OrderID
 }

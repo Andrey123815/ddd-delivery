@@ -19,4 +19,5 @@ type UnitOfWork interface {
 
 	CourierRepository() CourierRepository
 	OrderRepository() OrderRepository
+	OutboxRepository() OutboxRepository
 }

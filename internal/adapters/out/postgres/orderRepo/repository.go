@@ -2,14 +2,12 @@ package orderRepo
 
 import (
 	"context"
-	"delivery/internal/core/application/usecases/events"
+	outbox "delivery/internal/adapters/out/outbox"
 	"delivery/internal/core/domain/models/order"
 	"delivery/internal/core/ports"
-	"delivery/internal/pkg/ddd"
 	"delivery/internal/pkg/errs"
 
 	"github.com/google/uuid"
-	mediatr "github.com/mehdihadeli/go-mediatr"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -37,13 +35,25 @@ func (r *Repository) Add(ctx context.Context, aggregate *order.Order) error {
 func (r *Repository) Update(ctx context.Context, aggregate *order.Order) error {
 	r.uow.Track(aggregate)
 
+	outboxMessages, err := outbox.EncodeDomainEvents(aggregate.GetDomainEvents())
+	if err != nil {
+		return err
+	}
+
 	dto := DomainToDTO(aggregate)
 
 	if err := r.uow.Tx().WithContext(ctx).Session(&gorm.Session{FullSaveAssociations: true}).Save(&dto).Error; err != nil {
 		return err
 	}
 
-	return r.publishDomainEvents(ctx, aggregate)
+	if (outboxMessages != nil && len(outboxMessages) > 0) {
+		if err := r.uow.OutboxRepository().Save(ctx, outboxMessages); err != nil {
+			return err
+		}
+	}
+
+	aggregate.ClearDomainEvents()
+	return nil
 }
 
 func (r *Repository) Get(ctx context.Context, Id uuid.UUID) (*order.Order, error) {
@@ -120,25 +130,4 @@ func (r *Repository) GetCourierIDsWithAssignedOrders(ctx context.Context) ([]uui
 		return nil, err
 	}
 	return ids, nil
-}
-
-func (r *Repository) publishDomainEvents(ctx context.Context, aggregate *order.Order) error {
-	for _, ev := range aggregate.GetDomainEvents() {
-		if err := publishDomainEvent(ctx, ev); err != nil {
-			return err
-		}
-	}
-	aggregate.ClearDomainEvents()
-	return nil
-}
-
-func publishDomainEvent(ctx context.Context, ev ddd.DomainEvent) error {
-	switch e := ev.(type) {
-	case *events.OrderCompletedDomainEvent:
-		return mediatr.Publish(ctx, e)
-	case *events.OrderAssignedDomainEvent:
-		return mediatr.Publish(ctx, e)
-	default:
-		return nil
-	}
 }

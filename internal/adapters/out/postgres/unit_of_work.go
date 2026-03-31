@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	courierRepo "delivery/internal/adapters/out/postgres/courierRepo"
+	outboxRepo "delivery/internal/adapters/out/postgres/outboxRepo"
 	orderRepo "delivery/internal/adapters/out/postgres/orderRepo"
 	"delivery/internal/core/ports"
 	"delivery/internal/pkg/ddd"
@@ -13,7 +14,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var _ ports.UnitOfWork = &UnitOfWork{}
+var _ ports.UnitOfWork = (*UnitOfWork)(nil)
 
 type UnitOfWork struct {
 	tx                *gorm.DB
@@ -22,6 +23,7 @@ type UnitOfWork struct {
 	trackedAggregates []ddd.AggregateRoot
 	courierRepository ports.CourierRepository
 	orderRepository   ports.OrderRepository
+	outboxRepository  ports.OutboxRepository
 }
 
 func NewUnitOfWork(db *gorm.DB) (ports.UnitOfWork, error) {
@@ -44,6 +46,12 @@ func NewUnitOfWork(db *gorm.DB) (ports.UnitOfWork, error) {
 		return nil, err
 	}
 	uow.orderRepository = orderRepo
+
+	outRepo, err := outboxRepo.NewRepository(uow)
+	if err != nil {
+		return nil, err
+	}
+	uow.outboxRepository = outRepo
 
 	return uow, nil
 }
@@ -70,6 +78,10 @@ func (u *UnitOfWork) CourierRepository() ports.CourierRepository {
 
 func (u *UnitOfWork) OrderRepository() ports.OrderRepository {
 	return u.orderRepository
+}
+
+func (u *UnitOfWork) OutboxRepository() ports.OutboxRepository {
+	return u.outboxRepository
 }
 
 func (u *UnitOfWork) Begin(ctx context.Context) {

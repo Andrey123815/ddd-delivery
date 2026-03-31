@@ -2,11 +2,13 @@ package postgres
 
 import (
 	"context"
+	adapteroutbox "delivery/internal/adapters/out/outbox"
 	courierRepo "delivery/internal/adapters/out/postgres/courierRepo"
 	orderRepo "delivery/internal/adapters/out/postgres/orderRepo"
 	"delivery/internal/core/domain/models/courier"
 	"delivery/internal/core/domain/models/kernel"
 	"delivery/internal/core/domain/models/order"
+	"delivery/internal/core/ports"
 	"delivery/internal/pkg/testcnts"
 	"testing"
 
@@ -52,6 +54,9 @@ func setupTest(t *testing.T) (context.Context, *gorm.DB, error) {
 	assert.NoError(t, err)
 
 	err = db.AutoMigrate(&courierRepo.StoragePlaceDTO{})
+	assert.NoError(t, err)
+
+	err = db.AutoMigrate(&adapteroutbox.Message{})
 	assert.NoError(t, err)
 
 	// Очистка выполняется после завершения теста
@@ -501,8 +506,8 @@ func Test_UnitOfWorkShouldRollbackUnlessCommitted(t *testing.T) {
 
 	uowInterface, err := NewUnitOfWork(db)
 	assert.NoError(t, err)
-	uow := uowInterface.(*UnitOfWork)
-
+	uow := uowInterface.(ports.UnitOfWork)
+		
 	location, err := kernel.NewLocation(6, 7)
 	assert.NoError(t, err)
 	courierAggregate, err := courier.NewCourier("Курьер для отката", mustNewSpeed(4), location)
