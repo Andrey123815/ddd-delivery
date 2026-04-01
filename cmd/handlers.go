@@ -16,62 +16,68 @@ import (
 )
 
 func (cr *CompositionRoot) NewCreateCourierHandler() commands.CreateCourierHandler {
-	uow, err := postgres.NewUnitOfWork(cr.DB())
+	factory, err := postgres.NewUnitOfWorkFactory(cr.DB())
 	if err != nil {
-		log.Fatalf("cannot create UnitOfWork: %v", err)
+		log.Fatalf("cannot create UnitOfWorkFactory: %v", err)
 	}
-	handler, err := createCourier.NewCreateCourierHandler(uow)
+
+	handler, err := createCourier.NewCreateCourierHandler(factory)
 	if err != nil {
 		log.Fatalf("cannot create CreateCourierHandler: %v", err)
 	}
+	
 	return handler
 }
 
 func (cr *CompositionRoot) NewCreateOrderHandler() commands.CreateOrderHandler {
-	uow, err := postgres.NewUnitOfWork(cr.DB())
+	factory, err := postgres.NewUnitOfWorkFactory(cr.DB())
 	if err != nil {
-		log.Fatalf("cannot create UnitOfWork: %v", err)
+		log.Fatalf("cannot create UnitOfWorkFactory: %v", err)
 	}
 
 	geoClient, err := geo.NewClient(cr.configs.GeoServiceGrpcHost)
 	if err != nil {
 		log.Fatalf("cannot create GeoClient: %v", err)
 	}
-	
-	handler, err := createOrder.NewCreateOrderHandler(uow, geoClient)
+
+	handler, err := createOrder.NewCreateOrderHandler(factory, geoClient)
 	if err != nil {
 		log.Fatalf("cannot create CreateOrderHandler: %v", err)
 	}
+	
 	return handler
 }
 
 func (cr *CompositionRoot) NewAssignCourierHandler() commands.AssignCourierHandler {
-	uow, err := postgres.NewUnitOfWork(cr.DB())
+	factory, err := postgres.NewUnitOfWorkFactory(cr.DB())
 	if err != nil {
-		log.Fatalf("cannot create UnitOfWork: %v", err)
+		log.Fatalf("cannot create UnitOfWorkFactory: %v", err)
 	}
+
 	dispatcher := services.NewOrderDispatcher()
+
 	handler, err := assignCourier.NewAssignCourierHandler(
-		uow.OrderRepository(),
-		uow.CourierRepository(),
 		dispatcher,
-		uow,
+		factory,
 	)
 	if err != nil {
 		log.Fatalf("cannot create AssignCourierHandler: %v", err)
 	}
+
 	return handler
 }
 
 func (cr *CompositionRoot) NewMoveCouriersHandler() commands.MoveCouriersHandler {
-	uow, err := postgres.NewUnitOfWork(cr.DB())
+	factory, err := postgres.NewUnitOfWorkFactory(cr.DB())
 	if err != nil {
-		log.Fatalf("cannot create UnitOfWork: %v", err)
+		log.Fatalf("cannot create UnitOfWorkFactory: %v", err)
 	}
-	handler, err := moveCouriers.NewMoveCouriersHandler(uow)
+
+	handler, err := moveCouriers.NewMoveCouriersHandler(factory)
 	if err != nil {
 		log.Fatalf("cannot create MoveCouriersHandler: %v", err)
 	}
+
 	return handler
 }
 
@@ -80,10 +86,12 @@ func (cr *CompositionRoot) NewGetAllCouriersHandler() queries.GetAllCouriersHand
 	if err != nil {
 		log.Fatalf("cannot create UnitOfWorkFactory: %v", err)
 	}
+
 	handler, err := getAllCouriers.NewGetAllCouriersHandler(factory)
 	if err != nil {
 		log.Fatalf("cannot create GetAllCouriersHandler: %v", err)
 	}
+
 	return handler
 }
 
@@ -92,9 +100,11 @@ func (cr *CompositionRoot) NewGetNoCompletedOrdersHandler() queries.GetNoComplet
 	if err != nil {
 		log.Fatalf("cannot create UnitOfWorkFactory: %v", err)
 	}
+
 	handler, err := getNoCompletedOrders.NewGetNoCompletedOrdersHandler(factory)
 	if err != nil {
 		log.Fatalf("cannot create GetNoCompletedOrdersHandler: %v", err)
 	}
+
 	return handler
 }

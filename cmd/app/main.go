@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"delivery/cmd"
 	httpAdapter "delivery/internal/adapters/in/http"
 	"delivery/internal/adapters/in/http/problems"
@@ -23,6 +24,7 @@ func main() {
 	defer compositionRoot.CloseAll()
 
 	startCron(compositionRoot)
+	startKafkaConsumer(compositionRoot)
 	startWebServer(compositionRoot, config.HttpPort)
 }
 
@@ -90,4 +92,18 @@ func startWebServer(cr *cmd.CompositionRoot, port string) {
 	servers.RegisterHandlers(e, httpServer)
 
 	e.Logger.Fatal(e.Start(fmt.Sprintf("0.0.0.0:%s", port)))
+}
+
+func startKafkaConsumer(cr *cmd.CompositionRoot) {
+	consumer, err := cr.NewBasketConfirmedConsumer()
+	if err != nil {
+		log.Fatalf("cannot create BasketConfirmedConsumer: %v", err)
+	}
+	cr.RegisterCloser(consumer)
+
+	go func() {
+		if err := consumer.Run(context.Background()); err != nil {
+			log.Printf("kafka consumer stopped: %v", err)
+		}
+	}()
 }

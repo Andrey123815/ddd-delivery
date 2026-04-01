@@ -17,20 +17,20 @@ type CreateOrderHandler interface {
 var _ CreateOrderHandler = &createOrderHandler{}
 
 type createOrderHandler struct {
-	uow ports.UnitOfWork
-	geoClient ports.GeoClient
+	uowFactory ports.UnitOfWorkFactory
+	geoClient  ports.GeoClient
 }
 
-func NewCreateOrderHandler(uow ports.UnitOfWork, geoClient ports.GeoClient) (CreateOrderHandler, error) {
-	if uow == nil {
-		return nil, errs.NewValueIsRequired("uow")
+func NewCreateOrderHandler(uowFactory ports.UnitOfWorkFactory, geoClient ports.GeoClient) (CreateOrderHandler, error) {
+	if uowFactory == nil {
+		return nil, errs.NewValueIsRequired("uowFactory")
 	}
 
 	if geoClient == nil {
 		return nil, errs.NewValueIsRequired("geoClient")
 	}
 
-	return &createOrderHandler{uow: uow, geoClient: geoClient}, nil
+	return &createOrderHandler{uowFactory: uowFactory, geoClient: geoClient}, nil
 }
 
 func (h *createOrderHandler) Handle(ctx context.Context, command *CreateOrderCommand) (uuid.UUID, error) {
@@ -41,7 +41,7 @@ func (h *createOrderHandler) Handle(ctx context.Context, command *CreateOrderCom
 		return uuid.Nil, errs.NewValueIsInvalid("command")
 	}
 
-	location, err := h.geoClient.GetGeolocation(ctx, "ул. Пушкина, 10")
+	location, err := h.geoClient.GetGeolocation(ctx, command.Address().Street)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -51,14 +51,19 @@ func (h *createOrderHandler) Handle(ctx context.Context, command *CreateOrderCom
 		return uuid.Nil, err
 	}
 
-	h.uow.Begin(ctx)
-	defer h.uow.RollbackUnlessCommitted(ctx)
-
-	if err := h.uow.OrderRepository().Add(ctx, orderAggregate); err != nil {
+	uow, err := h.uowFactory.New(ctx)
+	if err != nil {
 		return uuid.Nil, err
 	}
 
-	if err := h.uow.Commit(ctx); err != nil {
+	uow.Begin(ctx)
+	defer uow.RollbackUnlessCommitted(ctx)
+
+	if err := uow.OrderRepository().Add(ctx, orderAggregate); err != nil {
+		return uuid.Nil, err
+	}
+
+	if err := uow.Commit(ctx); err != nil {
 		return uuid.Nil, err
 	}
 
