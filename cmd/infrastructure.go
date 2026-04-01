@@ -5,6 +5,7 @@ import (
 	"log"
 	"sync"
 
+	"delivery/internal/adapters/out/outbox"
 	courierRepo "delivery/internal/adapters/out/postgres/courierRepo"
 	orderRepo "delivery/internal/adapters/out/postgres/orderRepo"
 	postgresgorm "gorm.io/driver/postgres"
@@ -37,6 +38,7 @@ func (cr *CompositionRoot) DB() *gorm.DB {
 			&courierRepo.CourierDTO{},
 			&courierRepo.StoragePlaceDTO{},
 			&orderRepo.OrderDTO{},
+			&outbox.Message{},
 		); err != nil {
 			log.Fatalf("cannot run auto migrate: %v", err)
 		}

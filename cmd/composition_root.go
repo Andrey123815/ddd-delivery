@@ -1,44 +1,38 @@
 package cmd
 
 import (
-	kafkain "delivery/internal/adapters/in/kafka"
-	kafkaout "delivery/internal/adapters/out/kafka"
-	"delivery/internal/jobs"
+	"delivery/internal/adapters/out/outbox"
+	"delivery/internal/core/application/usecases/events"
 	"log"
-
-	"github.com/robfig/cron/v3"
+	"reflect"
 )
 
 type CompositionRoot struct {
 	configs Config
 
 	closers []Closer
+	EventRegistry outbox.EventRegistry
 }
 
 func NewCompositionRoot(configs Config) *CompositionRoot {
+	eventRegistry, err := outbox.NewEventRegistry()
+	if err != nil {
+		log.Fatalf("cannot create EventRegistry: %v", err)
+	}
+
+	for _, t := range []reflect.Type{
+		reflect.TypeOf(events.OrderAssignedDomainEvent{}),
+		reflect.TypeOf(events.OrderCompletedDomainEvent{}),
+	} {
+		if err := eventRegistry.RegisterDomainEvent(t); err != nil {
+			log.Fatalf("cannot register domain event %s: %v", t.Name(), err)
+		}
+	}
+
 	return &CompositionRoot{
-		configs: configs,
+		configs:       configs,
+		EventRegistry: eventRegistry,
 	}
-}
-
-///////////////////////////////////////////////////////////
-//////////////////// JOBS /////////////////////////////////
-///////////////////////////////////////////////////////////
-
-func (cr *CompositionRoot) NewAssignOrdersJob() cron.Job {
-	job, err := jobs.NewAssignOrdersJob(cr.NewAssignCourierHandler())
-	if err != nil {
-		log.Fatalf("cannot create AssignOrdersJob: %v", err)
-	}
-	return job
-}
-
-func (cr *CompositionRoot) NewMoveCouriersJob() cron.Job {
-	job, err := jobs.NewMoveCouriersJob(cr.NewMoveCouriersHandler())
-	if err != nil {
-		log.Fatalf("cannot create MoveCouriersJob: %v", err)
-	}
-	return job
 }
 
 ///////////////////////////////////////////////////////////
@@ -55,28 +49,4 @@ func (cr *CompositionRoot) CloseAll() {
 			log.Printf("close error: %v", err)
 		}
 	}
-}
-
-
-func (cr *CompositionRoot) NewBasketConfirmedConsumer() (*kafkain.BasketConfirmedConsumer, error) {
-	return kafkain.NewBasketConfirmedConsumer(
-		cr.configs.KafkaBrokers(),
-		cr.configs.KafkaConsumerGroup,
-		cr.configs.KafkaBasketEventsTopic,
-		cr.NewCreateOrderHandler(),
-	)
-}
-
-func (cr *CompositionRoot) NewOrderAssignedProducer() (*kafkaout.OrderAssignedProducer, error) {
-	return kafkaout.NewOrderAssignedProducer(
-		cr.configs.KafkaBrokers(),
-		cr.configs.KafkaOrderEventsTopic,
-	)
-}
-
-func (cr *CompositionRoot) NewOrderCompletedProducer() (*kafkaout.OrderCompletedProducer, error) {
-	return kafkaout.NewOrderCompletedProducer(
-		cr.configs.KafkaBrokers(),
-		cr.configs.KafkaOrderEventsTopic,
-	)
 }

@@ -2,7 +2,6 @@ package kafkaout
 
 import (
 	"context"
-	"log"
 
 	"delivery/internal/generated/queues/ordereventspb"
 	"delivery/internal/pkg/errs"
@@ -12,7 +11,7 @@ import (
 )
 
 type OrderCompletedProducer struct {
-	producer sarama.AsyncProducer
+	producer sarama.SyncProducer
 	topic    string
 }
 
@@ -25,26 +24,15 @@ func NewOrderCompletedProducer(brokers []string, topic string) (*OrderCompletedP
 	}
 
 	cfg := sarama.NewConfig()
+	cfg.Producer.Return.Successes = true // required for SyncProducer (sarama)
 	cfg.Producer.RequiredAcks = sarama.WaitForAll
 	cfg.Producer.Retry.Max = 10
-	cfg.Producer.Return.Successes = true
-	cfg.Producer.Return.Errors = true
 	cfg.Version = sarama.V3_4_0_0
 
-	producer, err := sarama.NewAsyncProducer(brokers, cfg)
+	producer, err := sarama.NewSyncProducer(brokers, cfg)
 	if err != nil {
 		return nil, err
 	}
-
-	go func() {
-		for range producer.Successes() {
-		}
-	}()
-	go func() {
-		for pe := range producer.Errors() {
-			log.Printf("OrderCompletedProducer: kafka error: %v", pe.Err)
-		}
-	}()
 
 	return &OrderCompletedProducer{producer: producer, topic: topic}, nil
 }
@@ -67,12 +55,11 @@ func (p *OrderCompletedProducer) Publish(ctx context.Context, event *orderevents
 		},
 	}
 
-	select {
-	case p.producer.Input() <- msg:
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
+	if err := ctx.Err(); err != nil {
+		return err
 	}
+	_, _, err = p.producer.SendMessage(msg)
+	return err
 }
 
 func (p *OrderCompletedProducer) Close() error {
