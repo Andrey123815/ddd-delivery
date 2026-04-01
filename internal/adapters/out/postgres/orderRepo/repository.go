@@ -1,12 +1,15 @@
-package courierRepo
+package orderRepo
 
 import (
 	"context"
+	"delivery/internal/core/application/usecases/events"
 	"delivery/internal/core/domain/models/order"
 	"delivery/internal/core/ports"
+	"delivery/internal/pkg/ddd"
 	"delivery/internal/pkg/errs"
 
 	"github.com/google/uuid"
+	mediatr "github.com/mehdihadeli/go-mediatr"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -20,9 +23,7 @@ func NewRepository(uow ports.UnitOfWork) (*Repository, error) {
 		return nil, errs.NewValueIsRequired("uow")
 	}
 
-	return &Repository{
-		uow: uow,
-	}, nil
+	return &Repository{uow: uow}, nil
 }
 
 func (r *Repository) Add(ctx context.Context, aggregate *order.Order) error {
@@ -38,7 +39,11 @@ func (r *Repository) Update(ctx context.Context, aggregate *order.Order) error {
 
 	dto := DomainToDTO(aggregate)
 
-	return r.uow.Tx().WithContext(ctx).Session(&gorm.Session{FullSaveAssociations: true}).Save(&dto).Error
+	if err := r.uow.Tx().WithContext(ctx).Session(&gorm.Session{FullSaveAssociations: true}).Save(&dto).Error; err != nil {
+		return err
+	}
+
+	return r.publishDomainEvents(ctx, aggregate)
 }
 
 func (r *Repository) Get(ctx context.Context, Id uuid.UUID) (*order.Order, error) {
@@ -115,4 +120,25 @@ func (r *Repository) GetCourierIDsWithAssignedOrders(ctx context.Context) ([]uui
 		return nil, err
 	}
 	return ids, nil
+}
+
+func (r *Repository) publishDomainEvents(ctx context.Context, aggregate *order.Order) error {
+	for _, ev := range aggregate.GetDomainEvents() {
+		if err := publishDomainEvent(ctx, ev); err != nil {
+			return err
+		}
+	}
+	aggregate.ClearDomainEvents()
+	return nil
+}
+
+func publishDomainEvent(ctx context.Context, ev ddd.DomainEvent) error {
+	switch e := ev.(type) {
+	case *events.OrderCompletedDomainEvent:
+		return mediatr.Publish(ctx, e)
+	case *events.OrderAssignedDomainEvent:
+		return mediatr.Publish(ctx, e)
+	default:
+		return nil
+	}
 }

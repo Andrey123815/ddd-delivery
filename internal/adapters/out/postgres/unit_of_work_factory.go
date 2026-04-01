@@ -16,7 +16,7 @@ func NewUnitOfWorkFactory(db *gorm.DB) (ports.UnitOfWorkFactory, error) {
 	if db == nil {
 		return nil, errs.NewValueIsRequired("db")
 	}
-	
+
 	return &unitOfWorkFactory{db: db}, nil
 }
 
